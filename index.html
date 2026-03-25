@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- PWA & iOS Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SpeakAI">
+    <link rel="manifest" href="manifest.json">
+    <title>AI 英語口語教練</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-language"></i>
+                <h1>SpeakAI</h1>
+            </div>
+            <div class="user-profile">
+                <div class="practice-time" id="practice-time-display"><i class="fa-solid fa-clock"></i> 0 min</div>
+                <div class="nickname-display" id="profile-settings-btn" style="cursor: pointer;" title="開啓設定">
+                    <span id="user-name-display" class="user-name"></span>
+                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area (Tabs) -->
+        <main class="main-content">
+            <!-- Scenarios View -->
+            <section id="scenarios-view" class="view active">
+                <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h2><i class="fa-solid fa-list-check"></i> 每日情境題</h2>
+                        <p>選擇一個生活情境開始今天的練習</p>
+                    </div>
+                    <button id="refresh-scenarios-btn" class="icon-btn" title="手動刷新主題" style="margin-top: 4px; color: var(--primary); background: rgba(129, 140, 248, 0.1);">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                </div>
+                
+                <!-- Word of the Day -->
+                <div id="word-of-the-day-container"></div>
+                
+                <!-- Free Talk Card -->
+                <div class="scenario-card free-talk-card" id="free-talk-card" style="margin-bottom: 24px; border-color: var(--success); box-shadow: 0 4px 15px rgba(52, 211, 153, 0.1);">
+                    <div class="scenario-icon" style="color: var(--success); background: rgba(52, 211, 153, 0.1);">
+                        <i class="fa-solid fa-comments"></i>
+                    </div>
+                    <div class="scenario-info">
+                        <h3>自由對話 (Free Talk)</h3>
+                        <p>這是一個自由聊天的空間，沒有任何話題限制！想聊什麼就聊什麼。</p>
+                    </div>
+                    <div class="scenario-action" style="color: var(--success);">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </div>
+                </div>
+
+                <div class="scenarios-grid" id="scenarios-container">
+                    <!-- Scenarios will be injected here by JS -->
+                </div>
+            </section>
+
+            <!-- Chat View -->
+            <section id="chat-view" class="view">
+                <div class="chat-header">
+                    <button id="back-to-scenarios" class="icon-btn" aria-label="返回">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <div class="chat-title">
+                        <h2 id="current-scenario-title">自由對話</h2>
+                        <span class="status-indicator online">AI 在線</span>
+                    </div>
+                    <div style="width: 36px;"></div> <!-- Spacer to maintain centering -->
+                </div>
+
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will be injected by JS -->
+                </div>
+
+                <div class="chat-input-area">
+                    <button class="icon-btn voice-btn" id="voice-input-btn" aria-label="語音輸入">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                    <div class="input-wrapper">
+                        <textarea id="message-input" placeholder="Type or say something in English..."
+                            rows="1"></textarea>
+                    </div>
+                    <button class="icon-btn send-btn" id="send-btn" aria-label="發送訊息">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </section>
+            <!-- Translation Tooltip -->
+            <div id="translation-tooltip" class="translation-tooltip hidden">
+                <div class="tooltip-content">
+                    <span class="tooltip-word"></span>
+                    <div class="tooltip-divider"></div>
+                    <span class="tooltip-translation" style="flex: 1;">
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                    </span>
+                    <button id="save-word-btn" class="icon-btn" title="加入單字庫" style="color: var(--warning); margin-left: 8px; font-size: 1.4em; padding: 12px; width: 44px; height: 44px;">
+                        <i class="fa-regular fa-star"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Vocab View -->
+            <section id="vocab-view" class="view">
+                <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h2><i class="fa-solid fa-book-bookmark"></i> 專屬單字庫</h2>
+                        <p>複習您收藏的單字、學習不同型態與造句</p>
+                    </div>
+                </div>
+                
+                <div id="vocab-list-container" class="vocab-list" style="padding-bottom: 20px;">
+                    <!-- Vocab words will be injected here -->
+                    <div style="text-align: center; margin-top: 40px; color: var(--text-secondary);">
+                        <i class="fa-solid fa-box-open" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                        <p>您的單字庫目前是空的。<br>在聊天室中游標停靠單字並點擊 ⭐ 即可收藏！</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Reading View -->
+            <section id="reading-view" class="view">
+                <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h2><i class="fa-solid fa-book-open"></i> 每日朗讀練習</h2>
+                        <p>朗讀短文，訓練發音精準度與語感</p>
+                    </div>
+                    <button id="refresh-reading-btn" class="icon-btn" title="換一篇練習" style="margin-top: 4px; color: var(--secondary); background: rgba(192, 132, 252, 0.1);">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                </div>
+                
+                <div id="reading-content-container">
+                    <div class="reading-card">
+                        <div class="reading-article-header">
+                            <span class="reading-tag">今日短文</span>
+                            <h3 id="reading-article-title">Loading...</h3>
+                        </div>
+                        <div class="reading-text-area">
+                            <p id="reading-article-text" class="reading-text">Fetching today's article...</p>
+                            <div id="reading-article-translation" class="reading-translation hidden" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color); color: var(--text-secondary); font-size: 0.95rem; text-align: justify; line-height: 1.6;">
+                                <i class="fa-solid fa-spinner fa-spin"></i> 正在翻譯此段落...
+                            </div>
+                        </div>
+                        
+                        <div class="reading-controls" style="display: flex; gap: 12px; margin-top: 10px;">
+                            <button id="listen-reading-btn" class="icon-btn" title="聽範音" style="width: auto; padding: 0 16px; border-radius: 20px; gap: 8px; background: rgba(192, 132, 252, 0.1); color: var(--secondary);">
+                                <i class="fa-solid fa-volume-high"></i> 範文朗讀
+                            </button>
+                            <button id="start-reading-btn" class="primary-btn pulse-btn" style="flex: 1; border-radius: 20px;">
+                                <i class="fa-solid fa-microphone"></i> 開始錄音練習
+                            </button>
+                        </div>
+                        
+                        <div id="reading-feedback-container" class="reading-feedback hidden">
+                            <!-- Feedback injected by JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-target="scenarios-view">
+                <i class="fa-solid fa-tasks"></i>
+                <span>情境練習</span>
+            </button>
+            <button class="nav-item" data-target="reading-view">
+                <i class="fa-solid fa-book-open"></i>
+                <span>每日朗讀</span>
+            </button>
+            <button class="nav-item" data-target="chat-view">
+                <i class="fa-solid fa-message"></i>
+                <span>自由對話</span>
+            </button>
+            <button class="nav-item" data-target="vocab-view">
+                <i class="fa-solid fa-book-bookmark"></i>
+                <span>單字庫</span>
+            </button>
+        </nav>
+
+        <!-- Settings Modal (API Key) -->
+        <div id="settings-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fa-solid fa-gear"></i> 設定 AI 引擎</h2>
+                    <button id="close-settings" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p class="modal-desc">請輸入您的 Google Gemini API Key 以啟動真實對話。金鑰只會安全地儲存於您的瀏覽器中，不會上傳到任何伺服器。</p>
+                    <div class="input-group">
+                        <label for="user-nickname-input">您的網名 / 暱稱 (Nickname)</label>
+                        <input type="text" id="user-nickname-input" placeholder="例如：Alex">
+                    </div>
+                    <div class="input-group">
+                        <label for="user-level-select">您的英文程度 (English Level)</label>
+                        <select id="user-level-select">
+                            <option value="beginner">初級 (Beginner)</option>
+                            <option value="intermediate" selected>中級 (Intermediate)</option>
+                            <option value="advanced">高級 (Advanced)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="speech-speed-select">AI 朗讀語速 (Speech Speed)</label>
+                        <select id="speech-speed-select">
+                            <option value="0.7">較慢 (Slow)</option>
+                            <option value="0.85" selected>正常 (Normal)</option>
+                            <option value="1.0">較快 (Fast)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="api-key-input">Gemini API Key</label>
+                        <input type="password" id="api-key-input" placeholder="AIzaSy...">
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="help-link">免費取得 API Key <i class="fa-solid fa-external-link-alt"></i></a>
+                    </div>
+                    <div class="input-group checkbox-group">
+                        <label for="auto-speak-toggle" class="checkbox-label">
+                            <input type="checkbox" id="auto-speak-toggle" checked>
+                            自動朗讀 AI 的回覆內容 (Auto-Speak)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="save-settings-btn" class="primary-btn">儲存並啟用</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/scenarios.js"></script>
+    <script src="js/reading.js"></script>
+    <script src="js/vocab.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
