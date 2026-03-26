@@ -226,12 +226,14 @@ function appendAiMessage(text, correction = null, silent = false) {
 }
 
 function speakAiText(text) {
-    if (!('speechSynthesis' in window)) return;
+    if (!('speechSynthesis' in window) || !text) return;
     const isAutoSpeak = localStorage.getItem('auto_speak') !== 'false';
     if (!isAutoSpeak) return;
     
     // Remove markdown symbols (**, *, etc.) before speaking
-    const cleanText = text.replace(/[*#]/g, '');
+    // Added safety check to ensure text is a string
+    const cleanText = (typeof text === 'string') ? text.replace(/[*#]/g, '') : "";
+    if (!cleanText) return;
     
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'en-US';
@@ -418,14 +420,20 @@ async function callGeminiAPI(userText, apiKey) {
 
     try {
         let response;
-        const isLocal = window.location.hostname === 'localhost' || 
-                        window.location.hostname === '127.0.0.1' || 
+        const host = window.location.hostname;
+        const isLocal = host === 'localhost' || 
+                        host === '127.0.0.1' || 
+                        host.startsWith('192.168.') || 
+                        host.startsWith('10.') || 
+                        host.endsWith('.local') ||
                         window.location.protocol === 'file:';
 
-        // If running locally and we have an API key, use direct call for debugging/dev
-        // If deployed on Vercel, always use the secure /api/chat proxy
+        // Use the exact model name from the user's supported list: gemini-flash-latest
+        const modelName = "gemini-flash-latest";
+
         if (isLocal && apiKey) {
-            const directUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            // Local fallback: Direct call
+            const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
             response = await fetch(directUrl, {
                 method: 'POST',
                 headers: {
@@ -436,6 +444,7 @@ async function callGeminiAPI(userText, apiKey) {
                 })
             });
         } else {
+            // Production or No-Key local: Vercel Proxy
             const proxyUrl = `/api/chat`;
             response = await fetch(proxyUrl, {
                 method: 'POST',
@@ -469,8 +478,12 @@ async function callGeminiAPI(userText, apiKey) {
             throw new Error("AI 回覆的格式異常。");
         }
 
-        const aiText = candidate.content.parts[0].text;
+        const aiText = candidate.content.parts[0].text || "";
         
+        if (!aiText) {
+            throw new Error("AI 回覆的內容為空。");
+        }
+
         // Always add model's raw text to history FIRST to maintain 'user' -> 'model' alternating requirement
         conversationHistory.push({
             role: "model",
@@ -480,7 +493,10 @@ async function callGeminiAPI(userText, apiKey) {
         let aiJson;
         try {
             // Strip markdown code blocks just in case Gemini wrapped the JSON
-            const cleanedText = aiText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            // Added safety check to ensure aiText is a string
+            const cleanedText = typeof aiText === 'string' 
+                ? aiText.replace(/```json/gi, '').replace(/```/g, '').trim() 
+                : "";
             aiJson = JSON.parse(cleanedText);
         } catch (e) {
             console.error('Failed to parse AI JSON:', aiText);
@@ -494,36 +510,19 @@ async function callGeminiAPI(userText, apiKey) {
         removeTypingIndicator();
         console.error('API Error:', error);
         
-        let errorMsg = error.message;
-        if (errorMsg.includes('not found') || errorMsg.includes('ListModels')) {
-            try {
-                const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-                const listData = await listResp.json();
-                if (listData.models) {
-                    const available = listData.models
-                        .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
-                        .map(m => m.name.replace('models/', ''))
-                        .join(', ');
-                    if (available) {
-                         errorMsg = `您的金鑰所在專案可能存取權限不足，目前支援的模型為：[ ${available} ]。請複製並回報此訊息給開發者進行調整！`;
-                    } else {
-                         errorMsg = "這把 API Key 在伺服器端沒有開啟任何支援文字生成的模型權限。這通常是因為您申請的專案被限制或是所屬 Google 帳號異常。請嘗試使用不同的 Google 帳號申請看看！";
-                    }
-                } else if (listData.error) {
-                    errorMsg = `查詢可用模型失敗：${listData.error.message}`;
-                }
-            } catch(e) {
-                // Ignore fallback
-            }
-        } else if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
-            errorMsg = `網路連線問題，請檢查網路狀態。\n\n詳細錯誤: ${error.message}`;
+        let errorMsg = error.message || "Unknown error";
+        let displayMsg = errorMsg;
+
+        if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
+            displayMsg = `網路連線問題，請檢查網路狀態。如果您在本地執行，請確認「設定」中已填寫 API Key。\n\n詳細錯誤: ${errorMsg}`;
         } else if (errorMsg.toLowerCase().includes('quota') || errorMsg.includes('exhausted') || errorMsg.includes('429')) {
-            errorMsg = `API 請求頻率過快或已達免費額度上限（Gemini 免費版每分鐘最多 15 次），請稍等 10~20 秒後再試。\n\n詳細錯誤: ${error.message}`;
+            displayMsg = `API 請求頻率過快或已達免費額度上限，請稍等 10~20 秒後再試。\n\n詳細錯誤: ${errorMsg}`;
         } else if (errorMsg.includes('API_KEY_INVALID')) {
-            errorMsg = `API Key 似乎無效，請至右上方設定重新確認。\n\n詳細錯誤: ${error.message}`;
+            displayMsg = `API Key 似乎無效，請至右上方設定重新確認。\n\n詳細錯誤: ${errorMsg}`;
         }
-        
-        appendAiMessage(`⚠️ 系統提示：${errorMsg}`);
+
+        // Display the specific error in the chat
+        appendAiMessage(`⚠️ 系統提示：${displayMsg}`);
         
         // Remove the failed user message from history so they can retry
         if (conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1].role === 'user') {

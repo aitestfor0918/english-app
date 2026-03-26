@@ -221,11 +221,6 @@ window.VocabBank = {
         let apiKey = localStorage.getItem('gemini_api_key');
         const detailsContainer = document.getElementById(`vocab-details-${index}`);
         
-        if (!apiKey) {
-            detailsContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--error);">請先於右上角設定 API Key 才能產生完整單字卡。</div>';
-            return;
-        }
-        
         try {
             const prompt = `請以 JSON 格式提供英文單字 "${wordObj.word}" 的詳細學習資訊。
 格式規範必須嚴格遵循以下結構，不要加上任何 Markdown 註記或這句話以外的說明文字：
@@ -240,24 +235,61 @@ window.VocabBank = {
   ]
 }`;
             
-            // Use gemini-2.0-flash as it is supported in the user's project
-            const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ role: "user", parts: [{ text: prompt }] }]
-                })
-            });
+            let response;
+            const host = window.location.hostname;
+            const isLocal = host === 'localhost' || 
+                            host === '127.0.0.1' || 
+                            host.startsWith('192.168.') || 
+                            host.startsWith('10.') || 
+                            host.endsWith('.local') ||
+                            window.location.protocol === 'file:';
+
+            // Use the more stable model name and version for free tier
+            const modelName = "gemini-flash-latest";
+
+            if (isLocal && apiKey) {
+                // Local fallback: Direct call
+                const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                response = await fetch(directUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ role: "user", parts: [{ text: prompt }] }]
+                    })
+                });
+            } else {
+                // Production or No-Key local: Vercel Proxy
+                const proxyUrl = `/api/chat`;
+                response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey || ''
+                    },
+                    body: JSON.stringify({
+                        contents: [{ role: "user", parts: [{ text: prompt }] }]
+                    })
+                });
+            }
             
             const data = await response.json();
-            if (data.error) throw new Error(data.error.message);
+            if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
             
             const candidate = data.candidates && data.candidates[0];
-            const aiText = candidate.content.parts[0].text;
+            if (!candidate || !candidate.content || !candidate.content.parts || !candidate.content.parts[0]) {
+                throw new Error("AI 回覆格式異常。");
+            }
+
+            const aiText = candidate.content.parts[0].text || "";
             
+            if (!aiText) {
+                throw new Error("AI 回覆內容為空。");
+            }
+
             // Clean markdown metadata
-            const cleanedText = aiText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const cleanedText = typeof aiText === 'string' 
+                ? aiText.replace(/```json/gi, '').replace(/```/g, '').trim() 
+                : "";
             const richData = JSON.parse(cleanedText);
             
             // Update storage

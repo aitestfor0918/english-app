@@ -21,7 +21,8 @@ export default async function handler(req, res) {
 
   try {
     // Forward the request to Google's Gemini API
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+    const modelName = "gemini-flash-latest";
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
