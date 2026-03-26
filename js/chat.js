@@ -71,15 +71,15 @@ function resetChat(scenario, isInitialLoad = false) {
         }
     }
 
-    // Level-specific coaching instructions
+    // Level-specific coaching instructions (Calibrated to Taiwan Standards)
     let levelInstruction = "";
     if (level === 'beginner') {
-        levelInstruction = "The user is a BEGINNER (A1-A2). Use very simple words, basic grammar, and short sentences. Avoid all idioms, phrasal verbs, or complex metaphors. Your tone should be extremely encouraging and patient.";
+        levelInstruction = "The user is at a BEGINNER level (Equivalent to Taiwan Elementary to Junior High school, 國小至國中程度). Use only the most common 2,000 words. Use very simple grammar (Present/Past Simple) and short, direct sentences. Avoid idioms or complex phrasal verbs. Be extremely encouraging.";
     } else if (level === 'advanced') {
-        levelInstruction = "The user is ADVANCED (C1-C2). Use sophisticated vocabulary, complex sentence structures, and natural idioms/phrasal verbs. Challenge the user's comprehension and provide nuanced corrections.";
+        levelInstruction = "The user is at an ADVANCED level (Above Taiwan Senior High school, 高中以上程度). Use a wide range of sophisticated vocabulary, academic terms, and natural idioms. Use complex sentence structures and provide nuanced corrections on tone and style.";
     } else {
         // Intermediate
-        levelInstruction = "The user is INTERMEDIATE (B1-B2). Use standard natural English with mixed sentence lengths. Use common idioms occasionally to help the user grow. Balance clarity with natural flow.";
+        levelInstruction = "The user is at an INTERMEDIATE level (Equivalent to Taiwan Senior High school, 高中程度). Use vocabulary and grammar typical of a high school graduate (around 4,000-7,000 words). Use standard natural English with varied sentence lengths. Include common idioms to help them progress.";
     }
     
     conversationHistory = [
@@ -417,23 +417,43 @@ async function callGeminiAPI(userText, apiKey) {
     });
 
     try {
-        // Use gemini-2.0-flash as confirmed in the user's supported models list
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: conversationHistory
-            })
-        });
+        let response;
+        const isLocal = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' || 
+                        window.location.protocol === 'file:';
+
+        // If running locally and we have an API key, use direct call for debugging/dev
+        // If deployed on Vercel, always use the secure /api/chat proxy
+        if (isLocal && apiKey) {
+            const directUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            response = await fetch(directUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: conversationHistory
+                })
+            });
+        } else {
+            const proxyUrl = `/api/chat`;
+            response = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey || ''
+                },
+                body: JSON.stringify({
+                    contents: conversationHistory
+                })
+            });
+        }
 
         const data = await response.json();
         removeTypingIndicator();
 
         if (data.error) {
-            throw new Error(data.error.message);
+            throw new Error(data.error.message || JSON.stringify(data.error));
         }
         
         const candidate = data.candidates && data.candidates[0];

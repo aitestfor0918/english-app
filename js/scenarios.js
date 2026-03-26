@@ -161,7 +161,154 @@ document.addEventListener('DOMContentLoaded', () => {
     window.AppEventBus.on('user-level-updated', () => {
         renderWordOfTheDay();
     });
+
+    initExampleSpeechRecognition();
 });
+
+let exampleRecognition = null;
+let isExampleRecording = false;
+let recordingExampleIndex = -1;
+let exampleAccumulatedTranscript = "";
+let exampleCurrentInterim = "";
+
+function initExampleSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    
+    exampleRecognition = new SpeechRecognition();
+    exampleRecognition.lang = 'en-US';
+    exampleRecognition.continuous = true;
+    exampleRecognition.interimResults = true;
+    exampleRecognition.maxAlternatives = 1;
+    
+    exampleRecognition.onstart = () => {
+        isExampleRecording = true;
+        exampleAccumulatedTranscript = "";
+        exampleCurrentInterim = "";
+        
+        const btn = document.querySelector(`.mic-example-btn[data-index="${recordingExampleIndex}"]`);
+        if (btn) {
+            btn.innerHTML = '<i class="fa-solid fa-stop-circle fa-beat"></i>';
+            btn.classList.add('recording');
+            btn.style.color = 'var(--error)';
+        }
+    };
+    
+    exampleRecognition.onresult = (event) => {
+        let interimText = '';
+        let finalChunk = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalChunk += event.results[i][0].transcript;
+            } else {
+                interimText += event.results[i][0].transcript;
+            }
+        }
+        if (finalChunk) {
+            exampleAccumulatedTranscript += finalChunk + " ";
+        }
+        exampleCurrentInterim = interimText;
+    };
+    
+    exampleRecognition.onerror = (event) => {
+        console.error("Example recognition error", event.error);
+        if (event.error !== 'aborted') {
+            stopExampleRecording();
+        }
+    };
+    
+    exampleRecognition.onend = () => {
+        if (isExampleRecording) {
+            const finalTranscript = (exampleAccumulatedTranscript + " " + exampleCurrentInterim).trim();
+            const index = recordingExampleIndex;
+            stopExampleRecording();
+            if (finalTranscript.length > 0) {
+                analyzeExamplePronunciation(finalTranscript, index);
+            }
+        }
+    };
+}
+
+function toggleExampleRecording(index) {
+    if (!exampleRecognition) {
+        alert("您的瀏覽器不支援語音識別。");
+        return;
+    }
+    
+    if (isExampleRecording) {
+        if (recordingExampleIndex === index) {
+            exampleRecognition.stop();
+            // onend will handle the analysis
+        } else {
+            // Already recording another one? Ignore or switch.
+            exampleRecognition.stop();
+        }
+    } else {
+        recordingExampleIndex = index;
+        // Hide previous feedback for this sentence
+        const feedbackEl = document.getElementById(`example-feedback-${index}`);
+        if (feedbackEl) feedbackEl.classList.add('hidden');
+        
+        try {
+            exampleRecognition.start();
+        } catch(e) {
+            console.error(e);
+        }
+    }
+}
+
+function stopExampleRecording() {
+    isExampleRecording = false;
+    const btns = document.querySelectorAll('.mic-example-btn');
+    btns.forEach(btn => {
+        btn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+        btn.classList.remove('recording');
+        btn.style.color = 'var(--primary)';
+    });
+}
+
+function analyzeExamplePronunciation(transcript, index) {
+    const wordObj = getWordOfTheDay();
+    if (!wordObj || !wordObj.examples[index]) return;
+    
+    const original = wordObj.examples[index];
+    const cleanOriginal = original.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+    const cleanSpoken = transcript.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+    
+    const originalWords = cleanOriginal.split(/\s+/);
+    const spokenWords = cleanSpoken.split(/\s+/);
+    
+    let matchCount = 0;
+    const feedbackWords = [];
+    const displayWords = original.split(/\s+/);
+    
+    displayWords.forEach(displayWord => {
+        const cleanWord = displayWord.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+        if (spokenWords.includes(cleanWord)) {
+            matchCount++;
+            feedbackWords.push(`<span style="color: #10b981; font-weight: 500;">${displayWord}</span>`);
+        } else {
+            feedbackWords.push(`<span style="color: #f43f5e; font-weight: 500; text-decoration: underline wavy #f43f5e;">${displayWord}</span>`);
+        }
+    });
+    
+    const score = Math.round((matchCount / originalWords.length) * 100);
+    const feedbackEl = document.getElementById(`example-feedback-${index}`);
+    
+    if (feedbackEl) {
+        feedbackEl.innerHTML = `
+            <div style="margin-top: 10px; padding: 12px; background: rgba(0,0,0,0.03); border-radius: 8px; font-size: 0.95rem;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem;">${score}%</div>
+                    <strong style="color: var(--text-primary);">準確度分值</strong>
+                </div>
+                <div style="line-height: 1.6; margin-bottom: 8px;">${feedbackWords.join(' ')}</div>
+                <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem; font-style: italic;">您的錄音: "${transcript}"</p>
+            </div>
+        `;
+        feedbackEl.classList.remove('hidden');
+    }
+}
 
 function getDailyScenarios(forceRefresh = false) {
     // 6:00 AM Taiwan time (UTC+8) logic
@@ -302,6 +449,9 @@ function renderWordOfTheDay() {
     const isAlreadySaved = window.VocabBank && window.VocabBank.words.some(w => w.word.toLowerCase() === wordObj.word.toLowerCase());
     const starClass = isAlreadySaved ? 'fa-solid' : 'fa-regular';
     
+    // Limits examples to 2 as requested
+    const examplesToShow = wordObj.examples.slice(0, 2);
+
     container.innerHTML = `
         <div class="word-card">
             <div class="word-card-header">
@@ -321,14 +471,20 @@ function renderWordOfTheDay() {
                 </h3>
                 <p class="word-translation">${wordObj.translation}</p>
                 <div class="word-examples-container">
-                    ${wordObj.examples.map((ex, idx) => `
-                        <div class="word-example-item" style="margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px;">
-                            <button class="icon-btn pronounce-example-btn" data-index="${idx}" title="監聽整句發音" style="flex-shrink: 0; width: 28px; height: 28px; margin-top: 2px; color: var(--primary); background: rgba(129, 140, 248, 0.1);">
-                                <i class="fa-solid fa-volume-high" style="font-size: 0.8rem;"></i>
-                            </button>
-                            <div class="example-text-content">
-                                <p style="margin: 0; line-height: 1.5; color: var(--text-primary);">"${wrapWordsWithHover(ex)}"</p>
+                    ${examplesToShow.map((ex, idx) => `
+                        <div class="word-example-item" style="margin-bottom: 16px; border-bottom: 1px dashed rgba(0,0,0,0.05); padding-bottom: 12px;">
+                            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                <button class="icon-btn pronounce-example-btn" data-index="${idx}" title="監聽整句發音" style="flex-shrink: 0; width: 28px; height: 28px; margin-top: 2px; color: var(--primary); background: rgba(129, 140, 248, 0.1);">
+                                    <i class="fa-solid fa-volume-high" style="font-size: 0.8rem;"></i>
+                                </button>
+                                <button class="icon-btn mic-example-btn" data-index="${idx}" title="開始朗讀練習" style="flex-shrink: 0; width: 28px; height: 28px; margin-top: 2px; color: var(--primary); background: rgba(129, 140, 248, 0.1);">
+                                    <i class="fa-solid fa-microphone" style="font-size: 0.8rem;"></i>
+                                </button>
+                                <div class="example-text-content">
+                                    <p style="margin: 0; line-height: 1.5; color: var(--text-primary);">"${wrapWordsWithHover(ex)}"</p>
+                                </div>
                             </div>
+                            <div id="example-feedback-${idx}" class="example-feedback-area hidden"></div>
                         </div>
                     `).join('')}
                 </div>
@@ -350,12 +506,12 @@ function renderWordOfTheDay() {
         });
     }
     
-    // Attach listeners for multiple examples (Full Sentence Pronunciation)
+    // Attach listeners for microphone and pronunciation logic
     container.querySelectorAll('.pronounce-example-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const idx = btn.getAttribute('data-index');
-            const text = wordObj.examples[idx];
+            const idx = parseInt(btn.getAttribute('data-index'));
+            const text = examplesToShow[idx];
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
@@ -363,6 +519,14 @@ function renderWordOfTheDay() {
                 utterance.rate = 0.9;
                 window.speechSynthesis.speak(utterance);
             }
+        });
+    });
+
+    container.querySelectorAll('.mic-example-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.getAttribute('data-index'));
+            toggleExampleRecording(idx);
         });
     });
     
