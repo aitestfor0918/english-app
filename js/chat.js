@@ -181,7 +181,7 @@ function appendAiMessage(text, correction = null, silent = false) {
         <div class="avatar ai-avatar"><i class="fa-solid fa-robot"></i></div>
         <div class="message-content">
             <div class="message-bubble">
-                <p class="translatable-text">${wrapWordsWithHover(text)}</p>
+                <p class="translatable-text">${wrapWordsWithHover(formatMessage(text))}</p>
                 <button class="icon-btn ai-pronounce-btn" title="聽發音">
                     <i class="fa-solid fa-volume-high"></i>
                 </button>
@@ -346,7 +346,8 @@ function scrollToBottom() {
 }
 
 function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, 
+    if (!str) return "";
+    return String(str).replace(/[&<>'"]/g, 
         tag => ({
             '&': '&amp;',
             '<': '&lt;',
@@ -735,13 +736,23 @@ function initHoverTranslation() {
     }
 }
 
-function wrapWordsWithHover(text) {
-    let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+function formatMessage(text) {
+    if (!text) return "";
+    // Added safety check and String cast to prevent .replace failure on null/undefined
+    let html = String(text).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
     html = html.replace(/\n/g, '<br>');
+    return html;
+}
+
+function wrapWordsWithHover(text) {
+    if (!text) return "";
+    
+    // Safety check for null text
+    const safeText = String(text);
     
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
+    tempDiv.innerHTML = safeText;
     
     const walk = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null, false);
     const textNodes = [];
@@ -752,8 +763,9 @@ function wrapWordsWithHover(text) {
     
     textNodes.forEach(node => {
         const textContent = node.nodeValue;
-        if (/[A-Za-z]/.test(textContent)) {
+        if (textContent && /[A-Za-z]/.test(textContent)) {
             const span = document.createElement('span');
+            // Added check to ensure textContent is not null before replace
             span.innerHTML = textContent.replace(/([A-Za-z]+(?:'[A-Za-z]+)?)/g, '<span class="hover-word" data-word="$1">$1</span>');
             node.parentNode.replaceChild(span, node);
         }

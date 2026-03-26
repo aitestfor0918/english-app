@@ -272,15 +272,16 @@ function analyzeExamplePronunciation(transcript, index) {
     if (!wordObj || !wordObj.examples[index]) return;
     
     const original = wordObj.examples[index];
-    const cleanOriginal = original.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-    const cleanSpoken = transcript.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+    // Added null checks to avoid "Cannot read properties of null (reading 'toLowerCase')"
+    const cleanOriginal = (original || "").toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+    const cleanSpoken = (transcript || "").toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
     
     const originalWords = cleanOriginal.split(/\s+/);
     const spokenWords = cleanSpoken.split(/\s+/);
     
     let matchCount = 0;
     const feedbackWords = [];
-    const displayWords = original.split(/\s+/);
+    const displayWords = (original || "").split(/\s+/);
     
     displayWords.forEach(displayWord => {
         const cleanWord = displayWord.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");

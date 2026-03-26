@@ -307,11 +307,12 @@ function stopReadingRecording() {
 function analyzePronunciation(transcript) {
     if (!currentArticle) return;
     
-    const original = currentArticle.content.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-    const spoken = transcript.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+    // Added null checks to avoid "Cannot read properties of null (reading 'toLowerCase')"
+    const original = (currentArticle.content || "").toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+    const spoken = (transcript || "").toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
     
-    const originalWords = original.split(/\s+/);
-    const spokenWords = spoken.split(/\s+/);
+    const originalWords = (currentArticle.content || "").split(/\s+/);
+    const spokenWords = (transcript || "").toLowerCase().split(/\s+/);
     
     let matchCount = 0;
     const feedbackWords = [];
