@@ -26,7 +26,7 @@ window.VocabBank = {
     },
     
     saveWord(word, translation) {
-        if (!word) return;
+        if (!word) return false;
         const cleanWord = word.trim().toLowerCase();
         const exists = this.words.find(w => w.word.toLowerCase() === cleanWord);
         if (!exists) {
@@ -40,10 +40,31 @@ window.VocabBank = {
             
             // Re-render if we are in vocab view
             const view = document.getElementById('vocab-view');
-            if (view && view.classList.add) { // Ensure it's rendered if we are viewing it
+            if (view && view.classList.contains('active')) {
                 this.renderList();
             }
+            return true;
         }
+        return false;
+    },
+
+    removeWord(word) {
+        if (!word) return false;
+        const cleanWord = word.trim().toLowerCase();
+        const initialLength = this.words.length;
+        this.words = this.words.filter(w => w.word.toLowerCase() !== cleanWord);
+        
+        if (this.words.length !== initialLength) {
+            this.saveWords();
+            
+            // Re-render if we are in vocab view
+            const view = document.getElementById('vocab-view');
+            if (view && view.classList.contains('active')) {
+                this.renderList();
+            }
+            return true;
+        }
+        return false;
     },
     
     renderList() {
@@ -71,12 +92,17 @@ window.VocabBank = {
             
             card.innerHTML = `
                 <div class="vocab-header">
-                    <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
                         <span class="vocab-word">${wordObj.word}</span>
                         <span class="vocab-translation">${transText}</span>
-                        <button class="vocab-btn play-main-btn" title="聽發音"><i class="fa-solid fa-volume-high"></i></button>
+                        <div style="margin-left: auto; display: flex; gap: 8px;">
+                            <button class="vocab-btn play-main-btn" title="聽發音"><i class="fa-solid fa-volume-high"></i></button>
+                            <button class="vocab-btn vocab-toggle-btn" title="從單字庫移除" style="color: var(--warning); background: rgba(245, 158, 11, 0.1);">
+                                <i class="fa-solid fa-star"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div>
+                    <div style="margin-left: 12px;">
                         <i class="fa-solid fa-chevron-down vocab-expand-icon"></i>
                     </div>
                 </div>
@@ -109,6 +135,18 @@ window.VocabBank = {
                 e.stopPropagation();
                 this.speak(wordObj.word);
             });
+
+            // Setup toggle/delete button
+            const toggleBtn = card.querySelector('.vocab-toggle-btn');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm(`確定要從單字庫中移除 "${wordObj.word}" 嗎？`)) {
+                        this.removeWord(wordObj.word);
+                        this.renderList();
+                    }
+                });
+            }
             
             container.appendChild(card);
             
@@ -202,17 +240,13 @@ window.VocabBank = {
   ]
 }`;
             
-            // Always try 2.5-flash since this was verified earlier
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            // Use gemini-2.0-flash as it is supported in the user's project
+            const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ role: "user", parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        temperature: 0.2,
-                        responseMimeType: "application/json"
-                    }
+                    contents: [{ role: "user", parts: [{ text: prompt }] }]
                 })
             });
             

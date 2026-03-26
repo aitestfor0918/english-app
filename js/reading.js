@@ -1,46 +1,46 @@
 // Daily Reading Practice Logic
 
 const READING_ARTICLES = [
-    { id: 'r1', title: 'The Joy of Cooking', content: 'Cooking is a wonderful way to express creativity. Many people find it relaxing to prepare a meal for their friends and family. Using fresh ingredients makes a big difference in the final taste.' },
-    { id: 'r2', title: 'Morning Routine', content: 'A good morning routine can set the tone for the entire day. Some people like to exercise first thing, while others prefer a quiet moment with a cup of coffee and a book.' },
-    { id: 'r3', title: 'Traveling the World', content: 'Traveling allows us to experience different cultures and traditions. It broadens our horizons and helps us understand the world from a new perspective.' },
-    { id: 'r4', title: 'Benefits of Exercise', content: 'Regular physical activity is essential for maintaining good health. It not only strengthens the body but also improves mental well-being and reduces stress.' },
-    { id: 'r5', title: 'The Power of Reading', content: 'Reading books is a great way to gain knowledge and improve vocabulary. Whether it is fiction or non-fiction, every book offers a unique journey for the mind.' },
-    { id: 'r6', title: 'Exploring Nature', content: 'Spending time in nature has a profound impact on our mental health. It helps reduce stress and anxiety while improving our overall mood and physical vitality.' },
-    { id: 'r7', title: 'The Impact of Technology', content: 'Technology has revolutionized the way we live and work. While it brings incredible convenience, we must also be mindful of its effects on our daily interactions.' },
-    { id: 'r8', title: 'Healthy Eating Habits', content: 'Eating a balanced diet provides the essential nutrients our bodies need to function. Incorporating more fruits and vegetables is a simple step towards long-term wellness.' },
-    { id: 'r9', title: 'Learning a New Language', content: 'Studying a foreign language is a rewarding challenge that opens up new opportunities. It improves memory and connects us to different people around the globe.' },
-    { id: 'r10', title: 'The Art of Photography', content: 'Photography allows us to capture fleeting moments and preserve them forever. It teaches us to look at ordinary scenes with a more creative and observant eye.' },
-    { id: 'r11', title: 'Music and Emotion', content: 'Music has a unique ability to evoke strong emotions and memories. Whether playing an instrument or just listening, it connects people across different cultures.' },
-    { id: 'r12', title: "A Good Night's Sleep", content: 'Quality sleep is critical for our mental and physical restoration. Establishing a consistent bedtime routine can significantly improve our daily energy levels.' },
-    { id: 'r13', title: 'The Wonders of the Ocean', content: 'The ocean covers most of our planet and is home to countless incredible creatures. Protecting marine ecosystems is vital for the future of Earth.' },
-    { id: 'r14', title: 'Space Exploration', content: 'Humanity has always looked up at the stars with a sense of wonder. Space exploration pushes the boundaries of our knowledge and inspires future generations.' },
-    { id: 'r15', title: 'The Magic of Movies', content: 'Cinema is a powerful storytelling medium that can transport us to different worlds. A truly great movie leaves a lasting impact long after the credits roll.' },
-    { id: 'r16', title: 'Overcoming Obstacles', content: 'Life is full of unexpected challenges and difficulties. Facing these obstacles builds resilience and ultimately makes us stronger and more capable individuals.' },
-    { id: 'r17', title: 'The Beauty of Autumn', content: 'Autumn is a season of transition, marked by crisp air and falling leaves. Watching the trees change color reminds us of the natural cycle of life.' },
-    { id: 'r18', title: 'Adopting a Pet', content: 'Bringing a pet into your home offers companionship and unconditional love. Caring for an animal also teaches responsibility and empathy to children and adults alike.' },
-    { id: 'r19', title: 'The Importance of Friendship', content: 'Good friends provide support during difficult times and celebrate our successes. Nurturing these relationships is one of the most rewarding parts of life.' },
-    { id: 'r20', title: 'Time Management', content: 'Effectively managing your time reduces stress and increases productivity. Creating a daily schedule helps you focus on what is truly important without feeling overwhelmed.' },
-    { id: 'r21', title: 'The World of Coffee', content: 'For many, coffee is more than just a morning beverage; it is a ritual. The rich aroma and diverse brewing methods make it a fascinating subject to explore.' },
-    { id: 'r22', title: 'Historical Landmarks', content: 'Visiting ancient ruins and historical monuments connects us to the past. These incredible structures tell stories of civilizations that existed long before our time.' },
-    { id: 'r23', title: 'Staying Positive', content: 'Maintaining a positive outlook can completely change how you experience life. Focusing on gratitude helps shift our perspective towards the good things we often overlook.' },
-    { id: 'r24', title: 'The Joy of Gardening', content: 'Planting seeds and watching them grow is an incredibly satisfying process. Gardening teaches patience and rewards us with beautiful flowers and fresh vegetables.' },
-    { id: 'r25', title: 'Embracing Change', content: 'Change is an inevitable part of life that often brings anxiety. However, learning to adapt allows us to discover new paths and unexpected opportunities.' },
-    { id: 'r26', title: 'The Art of Listening', content: 'Active listening is a crucial skill for effective communication. When we truly listen, we make others feel valued and build deeper, more meaningful connections.' },
-    { id: 'r27', title: 'City Life vs Countryside', content: 'Living in a bustling city offers convenience and endless entertainment options. On the other hand, the countryside provides a peaceful environment and a slower pace.' },
-    { id: 'r28', title: 'Financial Literacy', content: 'Understanding how to manage money is a vital life skill. Budgeting and saving for the future provide security and freedom to make necessary life choices.' },
-    { id: 'r29', title: 'The Evolution of Transport', content: 'From horse-drawn carriages to high-speed bullet trains, transportation has evolved rapidly. These innovations have made the world feel much smaller and more connected.' },
-    { id: 'r30', title: 'Local Cuisine', content: 'Trying local dishes is one of the best parts of traveling. Food reflects the history, geography, and spirit of the people who live in a particular region.' },
-    { id: 'r31', title: 'The Role of Museums', content: 'Museums serve as guardians of human history and cultural heritage. They provide an educational space where generations can learn from the artifacts of the past.' },
-    { id: 'r32', title: 'Public Speaking', content: 'Speaking in front of an audience is a common fear for many people. With practice and preparation, it can become a powerful tool for sharing ideas.' },
-    { id: 'r33', title: 'The Importance of Hobbies', content: 'Engaging in a hobby provides a healthy escape from daily responsibilities. Whether it is painting or playing sports, hobbies bring balance and joy to our routines.' },
-    { id: 'r34', title: 'Protecting the Environment', content: 'Climate change is one of the most pressing issues of our time. Simple actions like recycling and reducing plastic use can make a significant difference.' },
-    { id: 'r35', title: 'The Rise of E-sports', content: 'Competitive video gaming has grown into a massive global industry. Today, professional gamers train for hours and compete in huge arenas for millions of dollars.' },
-    { id: 'r36', title: 'Fitness at Home', content: 'Working out at home has become incredibly popular due to its convenience. With just a yoga mat and some instructional videos, anyone can stay active without a gym.' },
-    { id: 'r37', title: 'The Joy of Bicycling', content: 'Riding a bicycle is an eco-friendly and enjoyable way to commute. It allows you to skip traffic jams while getting a great workout at the same time.' },
-    { id: 'r38', title: 'Traditional Festivals', content: 'Celebrating traditional festivals brings families and communities together. These events are often marked by special foods, vibrant decorations, and beautiful cultural performances.' },
-    { id: 'r39', title: 'Mindfulness Practices', content: 'Practicing mindfulness helps us stay focused on the present moment. Taking a few minutes to breathe deeply can clear our minds and improve emotional stability.' },
-    { id: 'r40', title: 'The Future of AI', content: 'Artificial intelligence is advancing at an unprecedented rate. It holds the potential to solve complex problems, but also raises important ethical questions for society.' }
+    { id: 'r1', level: 'beginner', title: 'The Joy of Cooking', content: 'Cooking is a wonderful way to express creativity. Many people find it relaxing to prepare a meal for their friends and family. Using fresh ingredients makes a big difference in the final taste.' },
+    { id: 'r2', level: 'beginner', title: 'Morning Routine', content: 'A good morning routine can set the tone for the entire day. Some people like to exercise first thing, while others prefer a quiet moment with a cup of coffee and a book.' },
+    { id: 'r3', level: 'intermediate', title: 'Traveling the World', content: 'Traveling allows us to experience different cultures and traditions. It broadens our horizons and helps us understand the world from a new perspective.' },
+    { id: 'r4', level: 'intermediate', title: 'Benefits of Exercise', content: 'Regular physical activity is essential for maintaining good health. It not only strengthens the body but also improves mental well-being and reduces stress.' },
+    { id: 'r5', level: 'beginner', title: 'The Power of Reading', content: 'Reading books is a great way to gain knowledge and improve vocabulary. Whether it is fiction or non-fiction, every book offers a unique journey for the mind.' },
+    { id: 'r6', level: 'intermediate', title: 'Exploring Nature', content: 'Spending time in nature has a profound impact on our mental health. It helps reduce stress and anxiety while improving our overall mood and physical vitality.' },
+    { id: 'r7', level: 'advanced', title: 'The Impact of Technology', content: 'Technology has revolutionized the way we live and work. While it brings incredible convenience, we must also be mindful of its effects on our daily interactions.' },
+    { id: 'r8', level: 'beginner', title: 'Healthy Eating Habits', content: 'Eating a balanced diet provides the essential nutrients our bodies need to function. Incorporating more fruits and vegetables is a simple step towards long-term wellness.' },
+    { id: 'r9', level: 'advanced', title: 'Learning a New Language', content: 'Studying a foreign language is a rewarding challenge that opens up new opportunities. It improves memory and connects us to different people around the globe.' },
+    { id: 'r10', level: 'intermediate', title: 'The Art of Photography', content: 'Photography allows us to capture fleeting moments and preserve them forever. It teaches us to look at ordinary scenes with a more creative and observant eye.' },
+    { id: 'r11', level: 'intermediate', title: 'Music and Emotion', content: 'Music has a unique ability to evoke strong emotions and memories. Whether playing an instrument or just listening, it connects people across different cultures.' },
+    { id: 'r12', level: 'beginner', title: "A Good Night's Sleep", content: 'Quality sleep is critical for our mental and physical restoration. Establishing a consistent bedtime routine can significantly improve our daily energy levels.' },
+    { id: 'r13', level: 'advanced', title: 'The Wonders of the Ocean', content: 'The ocean covers most of our planet and is home to countless incredible creatures. Protecting marine ecosystems is vital for the future of Earth.' },
+    { id: 'r14', level: 'advanced', title: 'Space Exploration', content: 'Humanity has always looked up at the stars with a sense of wonder. Space exploration pushes the boundaries of our knowledge and inspires future generations.' },
+    { id: 'r15', level: 'intermediate', title: 'The Magic of Movies', content: 'Cinema is a powerful storytelling medium that can transport us to different worlds. A truly great movie leaves a lasting impact long after the credits roll.' },
+    { id: 'r16', level: 'advanced', title: 'Overcoming Obstacles', content: 'Life is full of unexpected challenges and difficulties. Facing these obstacles builds resilience and ultimately makes us stronger and more capable individuals.' },
+    { id: 'r17', level: 'intermediate', title: 'The Beauty of Autumn', content: 'Autumn is a season of transition, marked by crisp air and falling leaves. Watching the trees change color reminds us of the natural cycle of life.' },
+    { id: 'r18', level: 'beginner', title: 'Adopting a Pet', content: 'Bringing a pet into your home offers companionship and unconditional love. Caring for an animal also teaches responsibility and empathy to children and adults alike.' },
+    { id: 'r19', level: 'beginner', title: 'The Importance of Friendship', content: 'Good friends provide support during difficult times and celebrate our successes. Nurturing these relationships is one of the most rewarding parts of life.' },
+    { id: 'r20', level: 'intermediate', title: 'Time Management', content: 'Effectively managing your time reduces stress and increases productivity. Creating a daily schedule helps you focus on what is truly important without feeling overwhelmed.' },
+    { id: 'r21', level: 'intermediate', title: 'The World of Coffee', content: 'For many, coffee is more than just a morning beverage; it is a ritual. The rich aroma and diverse brewing methods make it a fascinating subject to explore.' },
+    { id: 'r22', level: 'intermediate', title: 'Historical Landmarks', content: 'Visiting ancient ruins and historical monuments connects us to the past. These incredible structures tell stories of civilizations that existed long before our time.' },
+    { id: 'r23', level: 'beginner', title: 'Staying Positive', content: 'Maintaining a positive outlook can completely change how you experience life. Focusing on gratitude helps shift our perspective towards the good things we often overlook.' },
+    { id: 'r24', level: 'beginner', title: 'The Joy of Gardening', content: 'Planting seeds and watching them grow is an incredibly satisfying process. Gardening teaches patience and rewards us with beautiful flowers and fresh vegetables.' },
+    { id: 'r25', level: 'intermediate', title: 'Embracing Change', content: 'Change is an inevitable part of life that often brings anxiety. However, learning to adapt allows us to discover new paths and unexpected opportunities.' },
+    { id: 'r26', level: 'beginner', title: 'The Art of Listening', content: 'Active listening is a crucial skill for effective communication. When we truly listen, we make others feel valued and build deeper, more meaningful connections.' },
+    { id: 'r27', level: 'beginner', title: 'City Life vs Countryside', content: 'Living in a bustling city offers convenience and endless entertainment options. On the other hand, the countryside provides a peaceful environment and a slower pace.' },
+    { id: 'r28', level: 'intermediate', title: 'Financial Literacy', content: 'Understanding how to manage money is a vital life skill. Budgeting and saving for the future provide security and freedom to make necessary life choices.' },
+    { id: 'r29', level: 'advanced', title: 'The Evolution of Transport', content: 'From horse-drawn carriages to high-speed bullet trains, transportation has evolved rapidly. These innovations have made the world feel much smaller and more connected.' },
+    { id: 'r30', level: 'beginner', title: 'Local Cuisine', content: 'Trying local dishes is one of the best parts of traveling. Food reflects the history, geography, and spirit of the people who live in a particular region.' },
+    { id: 'r31', level: 'intermediate', title: 'The Role of Museums', content: 'Museums serve as guardians of human history and cultural heritage. They provide an educational space where generations can learn from the artifacts of the past.' },
+    { id: 'r32', level: 'advanced', title: 'Public Speaking', content: 'Speaking in front of an audience is a common fear for many people. With practice and preparation, it can become a powerful tool for sharing ideas.' },
+    { id: 'r33', level: 'beginner', title: 'The Importance of Hobbies', content: 'Engaging in a hobby provides a healthy escape from daily responsibilities. Whether it is painting or playing sports, hobbies bring balance and joy to our routines.' },
+    { id: 'r34', level: 'advanced', title: 'Protecting the Environment', content: 'Climate change is one of the most pressing issues of our time. Simple actions like recycling and reducing plastic use can make a significant difference.' },
+    { id: 'r35', level: 'intermediate', title: 'The Rise of E-sports', content: 'Competitive video gaming has grown into a massive global industry. Today, professional gamers train for hours and compete in huge arenas for millions of dollars.' },
+    { id: 'r36', level: 'beginner', title: 'Fitness at Home', content: 'Working out at home has become incredibly popular due to its convenience. With just a yoga mat and some instructional videos, anyone can stay active without a gym.' },
+    { id: 'r37', level: 'beginner', title: 'The Joy of Bicycling', content: 'Riding a bicycle is an eco-friendly and enjoyable way to commute. It allows you to skip traffic jams while getting a great workout at the same time.' },
+    { id: 'r38', level: 'beginner', title: 'Traditional Festivals', content: 'Celebrating traditional festivals brings families and communities together. These events are often marked by special foods, vibrant decorations, and beautiful cultural performances.' },
+    { id: 'r39', level: 'advanced', title: 'Mindfulness Practices', content: 'Practicing mindfulness helps us stay focused on the present moment. Taking a few minutes to breathe deeply can clear our minds and improve emotional stability.' },
+    { id: 'r40', level: 'advanced', title: 'The Future of AI', content: 'Artificial intelligence is advancing at an unprecedented rate. It holds the potential to solve complex problems, but also raises important ethical questions for society.' }
 ];
 
 let currentArticle = null;
@@ -51,6 +51,12 @@ let currentInterim = "";
 
 document.addEventListener('DOMContentLoaded', () => {
     initReading();
+    
+    // Listen for level changes
+    window.AppEventBus.on('user-level-updated', () => {
+        manualArticleIndex = -1; // Reset manual selection
+        renderDailyArticle();
+    });
 });
 
 let manualArticleIndex = -1;
@@ -83,11 +89,15 @@ function initReading() {
             const icon = refreshBtn.querySelector('i');
             icon.classList.add('fa-spin');
             
+            const level = localStorage.getItem('user_level') || 'intermediate';
+            const filteredArticles = READING_ARTICLES.filter(a => a.level === level);
+            const db = filteredArticles.length > 0 ? filteredArticles : READING_ARTICLES;
+
             // Randomly select another one different from the current
             let nextIndex;
             do {
-                nextIndex = Math.floor(Math.random() * READING_ARTICLES.length);
-            } while (nextIndex === READING_ARTICLES.indexOf(currentArticle) && READING_ARTICLES.length > 1);
+                nextIndex = Math.floor(Math.random() * db.length);
+            } while (nextIndex === db.indexOf(currentArticle) && db.length > 1);
             
             manualArticleIndex = nextIndex;
             
@@ -102,8 +112,12 @@ function initReading() {
 }
 
 function getDailyArticle() {
-    if (manualArticleIndex >= 0) {
-        return READING_ARTICLES[manualArticleIndex];
+    const level = localStorage.getItem('user_level') || 'intermediate';
+    const filteredArticles = READING_ARTICLES.filter(a => a.level === level);
+    const db = filteredArticles.length > 0 ? filteredArticles : READING_ARTICLES;
+
+    if (manualArticleIndex >= 0 && manualArticleIndex < db.length) {
+        return db[manualArticleIndex];
     }
 
     const now = new Date();
@@ -119,8 +133,8 @@ function getDailyArticle() {
         seed += logicalDate.charCodeAt(i);
     }
     
-    const index = seed % READING_ARTICLES.length;
-    return READING_ARTICLES[index];
+    const index = seed % db.length;
+    return db[index];
 }
 
 function renderDailyArticle() {
