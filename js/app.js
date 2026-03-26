@@ -135,31 +135,11 @@ function initSettings() {
 
 function initNavigation() {
     const navItems = document.querySelectorAll('.nav-item');
-    const views = document.querySelectorAll('.view');
 
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
-            // Prevent if already active
-            if (item.classList.contains('active')) return;
-
             const targetId = item.getAttribute('data-target');
-
-            // Refresh vocab list when entering the vocab view
-            if (targetId === 'vocab-view' && window.VocabBank) {
-                window.VocabBank.renderList();
-            }
-
-            // Update nav styles
-            navItems.forEach(nav => nav.classList.remove('active'));
-            item.classList.add('active');
-
-            // Switch views
-            views.forEach(view => {
-                view.classList.remove('active');
-                if (view.id === targetId) {
-                    view.classList.add('active');
-                }
-            });
+            window.switchView(targetId);
         });
     });
 
@@ -167,11 +147,37 @@ function initNavigation() {
     const backBtn = document.getElementById('back-to-scenarios');
     if (backBtn) {
         backBtn.addEventListener('click', () => {
-            // Trigger click on scenarios nav item
-            document.querySelector('.nav-item[data-target="scenarios-view"]').click();
+            window.switchView('scenarios-view');
         });
     }
 }
+
+// Global View Switcher
+window.switchView = function(targetId) {
+    const navItems = document.querySelectorAll('.nav-item');
+    const views = document.querySelectorAll('.view');
+    
+    // Refresh vocab list when entering the vocab view
+    if (targetId === 'vocab-view' && window.VocabBank) {
+        window.VocabBank.renderList();
+    }
+
+    // Update nav styles (if nav exists for this target)
+    navItems.forEach(nav => {
+        nav.classList.remove('active');
+        if (nav.getAttribute('data-target') === targetId) {
+            nav.classList.add('active');
+        }
+    });
+
+    // Switch views
+    views.forEach(view => {
+        view.classList.remove('active');
+        if (view.id === targetId) {
+            view.classList.add('active');
+        }
+    });
+};
 
 function initTextareaAutoResize() {
     const textarea = document.getElementById('message-input');

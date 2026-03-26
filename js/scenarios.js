@@ -397,8 +397,37 @@ function renderDailyScenarios(forceRefresh = false) {
     const scenarios = getDailyScenarios(forceRefresh).slice(0, 4);
     container.innerHTML = '';
     
+    // Add Free Chat as the first card (Fixed)
+    const freeChatCard = document.createElement('div');
+    freeChatCard.className = 'scenario-card';
+    freeChatCard.style.animation = `fadeIn 0.5s ease 0s backwards`;
+    freeChatCard.innerHTML = `
+        <div class="scenario-icon" style="color: var(--secondary); background: rgba(168, 85, 247, 0.1);">
+            <i class="fa-solid fa-robot"></i>
+        </div>
+        <div class="scenario-info">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span style="background: var(--secondary); color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold;">推薦</span>
+                <h3>自由對話</h3>
+            </div>
+            <p>這是一個自由聊天的空間，沒有任何主題限制，隨便聊聊！</p>
+        </div>
+        <div class="scenario-action">
+            <i class="fa-solid fa-chevron-right"></i>
+        </div>
+    `;
+    freeChatCard.addEventListener('click', () => {
+        window.AppEventBus.emit('start-scenario', {
+            id: 'free',
+            title: '自由對話',
+            desc: '這是一個自由聊天的空間，沒有任何話題限制！'
+        });
+    });
+    container.appendChild(freeChatCard);
+
+    // Add the 4 randomized scenarios
     scenarios.forEach((scenario, index) => {
-        const delay = index * 0.1; // Staggered animation effect
+        const delay = (index + 1) * 0.1; // Staggered animation effect
         const card = document.createElement('div');
         card.className = 'scenario-card';
         card.style.animation = `fadeIn 0.5s ease ${delay}s backwards`;

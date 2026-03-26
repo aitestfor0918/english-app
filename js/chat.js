@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('current-scenario-title').textContent = scenario.title;
         
         // Switch to chat view
-        document.querySelector('.nav-item[data-target="chat-view"]').click();
+        window.switchView('chat-view');
         
         // Stop any ongoing speech
         if ('speechSynthesis' in window) {
