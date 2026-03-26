@@ -59,10 +59,8 @@ function resetChat(scenario, isInitialLoad = false) {
     const chatMessages = document.getElementById('chat-messages');
     chatMessages.innerHTML = '';
     
-    // Get nickname for prompt
+    // Get nickname and level from localStorage
     const nickname = localStorage.getItem('user_nickname') || 'Guest';
-    
-    // Get level for prompt
     const level = localStorage.getItem('user_level') || 'intermediate';
     
     let wordContext = "";
@@ -72,11 +70,22 @@ function resetChat(scenario, isInitialLoad = false) {
             wordContext = `Also, today's "Word of the Day" target is: "${wordObj.word}" (meaning: ${wordObj.translation}). In your first message greeting, please explicitly challenge or encourage me to try using this word in our conversation today! `;
         }
     }
+
+    // Level-specific coaching instructions
+    let levelInstruction = "";
+    if (level === 'beginner') {
+        levelInstruction = "The user is a BEGINNER (A1-A2). Use very simple words, basic grammar, and short sentences. Avoid all idioms, phrasal verbs, or complex metaphors. Your tone should be extremely encouraging and patient.";
+    } else if (level === 'advanced') {
+        levelInstruction = "The user is ADVANCED (C1-C2). Use sophisticated vocabulary, complex sentence structures, and natural idioms/phrasal verbs. Challenge the user's comprehension and provide nuanced corrections.";
+    } else {
+        // Intermediate
+        levelInstruction = "The user is INTERMEDIATE (B1-B2). Use standard natural English with mixed sentence lengths. Use common idioms occasionally to help the user grow. Balance clarity with natural flow.";
+    }
     
     conversationHistory = [
         {
             role: "user",
-            parts: [{text: `We are doing an English speaking practice roleplay. My name is ${nickname}. My English level is ${level}. The scenario is: ${scenario.title}. ${scenario.desc}. ${wordContext}You will act as the person I am talking to in this scenario, but you are also my English coach. Always reply in English. Every time I reply, you should continue the conversation naturally. Adjust your vocabulary and sentence complexity to match my level (${level}). If my English has grammatical errors, vocabulary mistakes, or unnatural phrasing, you must provide a correction. You MUST ONLY respond in valid JSON format with this exact structure (do not use markdown blocks for JSON, just pure JSON):\n{\n  "reply": "Your conversational response here",\n  "correction": {\n     "wrong": "The exact mistake I made (or null if perfect)",\n     "correct": "The corrected sentence (or null)",\n     "explanation": "Brief explanation in Traditional Chinese (or null)"\n  }\n}`}]
+            parts: [{text: `We are doing an English speaking practice roleplay. My name is ${nickname}. My English level is ${level}. ${levelInstruction} The scenario is: ${scenario.title}. ${scenario.desc}. ${wordContext}You will act as the person I am talking to in this scenario, but you are also my English coach. Always reply in English. Every time I reply, you should continue the conversation naturally. Adjust your vocabulary and sentence complexity to match my level strictly. If my English has grammatical errors, vocabulary mistakes, or unnatural phrasing, you must provide a correction. You MUST ONLY respond in valid JSON format with this exact structure (do not use markdown blocks for JSON, just pure JSON):\n{\n  "reply": "Your conversational response here",\n  "correction": {\n     "wrong": "The exact mistake I made (or null if perfect)",\n     "correct": "The corrected sentence (or null)",\n     "explanation": "Brief explanation in Traditional Chinese (or null)"\n  }\n}`}]
         },
         {
             role: "model",
@@ -171,13 +180,26 @@ function appendAiMessage(text, correction = null, silent = false) {
     msgDiv.innerHTML = `
         <div class="avatar ai-avatar"><i class="fa-solid fa-robot"></i></div>
         <div class="message-content">
-            <p class="translatable-text">${wrapWordsWithHover(text)}</p>
+            <div class="message-bubble">
+                <p class="translatable-text">${wrapWordsWithHover(text)}</p>
+                <button class="icon-btn ai-pronounce-btn" title="聽發音">
+                    <i class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
             ${correctionHtml}
             <span class="time">${timeStr}</span>
         </div>
     `;
     
     chatMessages.appendChild(msgDiv);
+
+    // Attach listener to AI pronunciation button
+    const pronounceBtn = msgDiv.querySelector('.ai-pronounce-btn');
+    if (pronounceBtn) {
+        pronounceBtn.addEventListener('click', () => {
+            speakAiText(text);
+        });
+    }
     
     // Attach listener to correction sound button if it exists
     if (correction) {
@@ -395,19 +417,15 @@ async function callGeminiAPI(userText, apiKey) {
     });
 
     try {
-        // Use gemini-2.5-flash as the user's API key supports it
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        // Use gemini-2.0-flash as confirmed in the user's supported models list
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                contents: conversationHistory,
-                generationConfig: {
-                    temperature: 0.7,
-                    responseMimeType: "application/json"
-                }
+                contents: conversationHistory
             })
         });
 
@@ -572,6 +590,13 @@ function initHoverTranslation() {
             } else {
                 tooltip.style.transform = 'translate(-50%, -100%)';
             }
+
+            // Sync save button icon
+            const saveBtnIcon = document.querySelector('#save-word-btn i');
+            if (saveBtnIcon && window.VocabBank) {
+                const isSaved = window.VocabBank.words.some(w => w.word.toLowerCase() === word.toLowerCase());
+                saveBtnIcon.className = isSaved ? 'fa-solid fa-star' : 'fa-regular fa-star';
+            }
             
             const lowerWord = word.toLowerCase();
             if (translationCache.has(lowerWord)) {
@@ -676,14 +701,16 @@ function initHoverTranslation() {
             const word = wordSpan.textContent.trim();
             const translation = transSpan.textContent.trim();
             if (word && window.VocabBank) {
-                window.VocabBank.saveWord(word, translation);
-                
-                // Visual feedback
                 const icon = saveBtn.querySelector('i');
-                icon.className = 'fa-solid fa-star';
-                setTimeout(() => {
+                const isCurrentlySaved = icon.classList.contains('fa-solid');
+
+                if (isCurrentlySaved) {
+                    window.VocabBank.removeWord(word);
                     icon.className = 'fa-regular fa-star';
-                }, 1000);
+                } else {
+                    window.VocabBank.saveWord(word, translation);
+                    icon.className = 'fa-solid fa-star';
+                }
             }
         });
     }

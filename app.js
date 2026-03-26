@@ -114,8 +114,14 @@ function initSettings() {
         window.AppEventBus.emit('nickname-updated', nickname);
 
         // Save Level & Speed
-        localStorage.setItem('user_level', levelSelect.value);
+        const oldLevel = localStorage.getItem('user_level');
+        const newLevel = levelSelect.value;
+        localStorage.setItem('user_level', newLevel);
         localStorage.setItem('speech_speed', speedSelect.value);
+        
+        if (oldLevel !== newLevel) {
+            window.AppEventBus.emit('user-level-updated', newLevel);
+        }
 
         localStorage.setItem('auto_speak', autoSpeakToggle.checked);
         modal.classList.add('hidden');
