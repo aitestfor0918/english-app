@@ -1,15 +1,13 @@
 // Scenarios Management
 
 const WORD_OF_THE_DAY_DB = [
-    // Beginner
     { 
         word: 'Creative', level: 'beginner',
         phonetic: '/kriˈeɪ.t̬ɪv/', 
         translation: '有創造力的', 
         examples: [
             'Children are very creative.',
-            'She has some creative ideas for the project.',
-            'He is a creative designer.'
+            'She has some creative ideas for the project.'
         ]
     },
     { 
@@ -18,8 +16,7 @@ const WORD_OF_THE_DAY_DB = [
         translation: '可靠的', 
         examples: [
             'My car is old but reliable.',
-            'He is a reliable friend.',
-            'We need a reliable source of information.'
+            'He is a reliable friend.'
         ]
     },
     { 
@@ -28,8 +25,34 @@ const WORD_OF_THE_DAY_DB = [
         translation: '機會', 
         examples: [
             'This is a great opportunity to learn.',
-            'Don\'t miss this opportunity.',
-            'I had the opportunity to travel to Japan.'
+            'Don\'t miss this opportunity.'
+        ]
+    },
+    { 
+        word: 'Essential', level: 'beginner',
+        phonetic: '/ɪˈsen.ʃəl/', 
+        translation: '必要的；不可或缺的', 
+        examples: [
+            'Water is essential for life.',
+            'It is essential to arrive on time.'
+        ]
+    },
+    { 
+        word: 'Healthy', level: 'beginner',
+        phonetic: '/ˈhel.θi/', 
+        translation: '健康的', 
+        examples: [
+            'She looks very healthy.',
+            'A healthy diet is important.'
+        ]
+    },
+    { 
+        word: 'Simple', level: 'beginner',
+        phonetic: '/ˈsɪm.pəl/', 
+        translation: '簡單的', 
+        examples: [
+            'The logic is very simple.',
+            'It was a simple mistake.'
         ]
     },
     // Intermediate
@@ -39,8 +62,7 @@ const WORD_OF_THE_DAY_DB = [
         translation: '迷人的；極有吸引力的', 
         examples: [
             'The book I read last night was truly fascinating.',
-            'The documentary offers a fascinating insight into the world of insects.',
-            'He has such a fascinating collection of old coins.'
+            'The documentary offers a fascinating insight.'
         ]
     },
     { 
@@ -48,9 +70,8 @@ const WORD_OF_THE_DAY_DB = [
         phonetic: '/əˈkɑːm.plɪʃ/', 
         translation: '完成；實現', 
         examples: [
-            'We can accomplish great things if we work together.',
-            'It took her three years to accomplish her goal of writing a novel.',
-            'You can accomplish anything if you believe in yourself.'
+            'We can accomplish great things together.',
+            'It took her three years to accomplish her goal.'
         ]
     },
     { 
@@ -58,9 +79,35 @@ const WORD_OF_THE_DAY_DB = [
         phonetic: '/ˈvɝː.sə.t̬əl/', 
         translation: '多才多藝的；多用途的', 
         examples: [
-            'He is a versatile actor who can play a wide variety of roles.',
-            'This kitchen tool is incredibly versatile; it can chop, slice, and dice.',
-            'Egg is a versatile ingredient that can be used in many different dishes.'
+            'He is a versatile actor.',
+            'This kitchen tool is incredibly versatile.'
+        ]
+    },
+    { 
+        word: 'Challenge', level: 'intermediate',
+        phonetic: '/ˈtʃæl.ɪndʒ/', 
+        translation: '挑戰', 
+        examples: [
+            'Learning a new language is a challenge.',
+            'We faced many challenges during the project.'
+        ]
+    },
+    { 
+        word: 'Distraction', level: 'intermediate',
+        phonetic: '/dɪˈstræk.ʃən/', 
+        translation: '分心；分心事物', 
+        examples: [
+            'I need quiet to work without distractions.',
+            'Phone notifications are a major distraction.'
+        ]
+    },
+    { 
+        word: 'Enthusiastic', level: 'intermediate',
+        phonetic: '/ɪnˌθuː.ziˈæs.tɪk/', 
+        translation: '熱情的', 
+        examples: [
+            'The team was very enthusiastic about the plan.',
+            'She is an enthusiastic supporter of the arts.'
         ]
     },
     // Advanced
@@ -69,9 +116,8 @@ const WORD_OF_THE_DAY_DB = [
         phonetic: '/rɪˈzɪl.jənt/', 
         translation: '有韌性的；適應力強的', 
         examples: [
-            'Children are often very resilient and recover quickly from difficult times.',
-            'The economy is surprisingly resilient despite the recent global crisis.',
-            'She is a resilient woman who has overcome many challenges in her life.'
+            'Children are often very resilient.',
+            'The economy is surprisingly resilient.'
         ]
     },
     { 
@@ -79,9 +125,8 @@ const WORD_OF_THE_DAY_DB = [
         phonetic: '/ˈem.pə.θi/', 
         translation: '同理心；共鳴', 
         examples: [
-            'Having empathy is important for building strong relationships.',
-            'Waiters should have empathy for their customers especially when they are in a rush.',
-            'He showed great empathy toward the victims of the natural disaster.'
+            'Having empathy is important for relationships.',
+            'He showed great empathy toward the victims.'
         ]
     },
     { 
@@ -89,9 +134,8 @@ const WORD_OF_THE_DAY_DB = [
         phonetic: '/ɪˈnɪʃ.ə.t̬ɪv/', 
         translation: '主動性；倡議', 
         examples: [
-            'She took the initiative to organize the company event.',
-            'The government has launched a new initiative to reduce carbon emissions.',
-            'In a team setting, it is important to take initiative when you see something needs to be done.'
+            'She took the initiative to organize the event.',
+            'The government launched a new initiative.'
         ]
     },
     { 
@@ -99,9 +143,26 @@ const WORD_OF_THE_DAY_DB = [
         phonetic: '/ˈɪn.ə.veɪ.t̬ɪv/', 
         translation: '創新的', 
         examples: [
-            'The company is known for its innovative approach to software design.',
-            'We are looking for innovative solutions to this complex problem.',
-            'The artist uses innovative techniques to create stunning visual effects.'
+            'The company is known for its innovative approach.',
+            'We need innovative solutions to this problem.'
+        ]
+    },
+    { 
+        word: 'Plausible', level: 'advanced',
+        phonetic: '/ˈplɑː.zə.bəl/', 
+        translation: '貌似合理的；說得通的', 
+        examples: [
+            'The explanation sounds plausible.',
+            'Is there a plausible reason for the delay?'
+        ]
+    },
+    { 
+        word: 'Ubiquitous', level: 'advanced',
+        phonetic: '/juːˈbɪk.wə.t̬əs/', 
+        translation: '無所不在的', 
+        examples: [
+            'Mobile phones are now ubiquitous.',
+            'His influence is ubiquitous in this industry.'
         ]
     }
 ];
@@ -455,20 +516,49 @@ function renderDailyScenarios(forceRefresh = false) {
     });
 }
 
-function getWordOfTheDay() {
+function getWordOfTheDay(forceRefresh = false) {
     const level = localStorage.getItem('user_level') || 'intermediate';
     const filteredDB = WORD_OF_THE_DAY_DB.filter(w => w.level === level);
-    
-    // Fallback if no words for this level
     const db = filteredDB.length > 0 ? filteredDB : WORD_OF_THE_DAY_DB;
     
-    const today = new Date().toLocaleDateString();
-    let seed = 0;
-    for (let i = 0; i < today.length; i++) {
-        seed += today.charCodeAt(i);
+    // 6:00 AM Taiwan time logic
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const twTime = new Date(utc + (3600000 * 8));
+    const logicalDate = new Date(twTime.getTime() - (6 * 3600000)).toLocaleDateString();
+    
+    const stored = localStorage.getItem('speakAi_dailyWord');
+    if (stored && !forceRefresh) {
+        const parsed = JSON.parse(stored);
+        if (parsed.logicalDate === logicalDate) {
+            // Find the word in the current DB to ensure it exists (in case DB changed)
+            const found = db.find(w => w.word === parsed.word.word);
+            if (found) return found;
+        }
     }
-    const index = seed % db.length;
-    return db[index];
+    
+    // Pick a word semi-randomly but persistently for the day
+    // Combine logicalDate with a simple hash to get a consistent index
+    let hash = 0;
+    for (let i = 0; i < logicalDate.length; i++) {
+        hash = ((hash << 5) - hash) + logicalDate.charCodeAt(i);
+        hash |= 0; // Convert to 32bit integer
+    }
+    
+    // If forced refresh, add some randomness
+    if (forceRefresh) {
+        hash += Math.floor(Math.random() * 1000);
+    }
+    
+    const index = Math.abs(hash) % db.length;
+    const selectedWord = db[index];
+    
+    localStorage.setItem('speakAi_dailyWord', JSON.stringify({
+        logicalDate: logicalDate,
+        word: selectedWord
+    }));
+    
+    return selectedWord;
 }
 
 function renderWordOfTheDay() {
@@ -485,8 +575,13 @@ function renderWordOfTheDay() {
     container.innerHTML = `
         <div class="word-card">
             <div class="word-card-header">
-                <i class="fa-solid fa-calendar-day"></i>
-                <span>今日單字 (Word of the Day)</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-calendar-day"></i>
+                    <span>今日單字 (Word of the Day)</span>
+                </div>
+                <button id="refresh-word-btn" class="icon-btn" title="換一個單字" style="margin-left: auto; width: 28px; height: 28px; color: var(--text-secondary);">
+                    <i class="fa-solid fa-rotate"></i>
+                </button>
             </div>
             <div class="word-card-body">
                 <h3 class="word-title">
@@ -559,7 +654,7 @@ function renderWordOfTheDay() {
             toggleExampleRecording(idx);
         });
     });
-    
+
     const saveDailyBtn = document.getElementById('save-daily-word-btn');
     if (saveDailyBtn) {
         saveDailyBtn.addEventListener('click', (e) => {
@@ -578,6 +673,24 @@ function renderWordOfTheDay() {
                     icon.className = 'fa-solid fa-star';
                 }
             }
+        });
+    }
+
+    // Refresh Word of the Day logic
+    const refreshWordBtn = document.getElementById('refresh-word-btn');
+    if (refreshWordBtn) {
+        refreshWordBtn.addEventListener('click', () => {
+            const icon = refreshWordBtn.querySelector('i');
+            icon.classList.add('fa-spin');
+            
+            setTimeout(() => {
+                getWordOfTheDay(true); // Force pick a new one
+                renderWordOfTheDay();
+                icon.classList.remove('fa-spin');
+                
+                // Also update the chat system prompt if needed (though it only updates on scenario start/init)
+                // For simplicity, we just change the UI card.
+            }, 500);
         });
     }
 }
