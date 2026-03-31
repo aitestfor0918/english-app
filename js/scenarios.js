@@ -1,57 +1,6 @@
 // Scenarios Management
 
-const WORD_OF_THE_DAY_DB = [
-    // Beginner
-    { word: 'Creative', level: 'beginner', phonetic: '/kriˈeɪ.t̬ɪv/', translation: '有創造力的', examples: ['Children are very creative.', 'She has some creative ideas for the project.'] },
-    { word: 'Reliable', level: 'beginner', phonetic: '/rɪˈlaɪ.ə.bəl/', translation: '可靠的', examples: ['My car is old but reliable.', 'He is a reliable friend.'] },
-    { word: 'Opportunity', level: 'beginner', phonetic: '/ˌɑː.pɚˈtuː.nə.t̬i/', translation: '機會', examples: ['This is a great opportunity to learn.', 'Don\'t miss this opportunity.'] },
-    { word: 'Essential', level: 'beginner', phonetic: '/ɪˈsen.ʃəl/', translation: '必要的；不可或缺的', examples: ['Water is essential for life.', 'It is essential to arrive on time.'] },
-    { word: 'Healthy', level: 'beginner', phonetic: '/ˈhel.θi/', translation: '健康的', examples: ['She looks very healthy.', 'A healthy diet is important.'] },
-    { word: 'Simple', level: 'beginner', phonetic: '/ˈsɪm.pəl/', translation: '簡單的', examples: ['The logic is very simple.', 'It was a simple mistake.'] },
-    { word: 'Adventure', level: 'beginner', phonetic: '/ədˈven.tʃɚ/', translation: '冒險', examples: ['Traveling to a new country is an adventure.', 'They are looking for adventure.'] },
-    { word: 'Balance', level: 'beginner', phonetic: '/ˈbæl.əns/', translation: '平衡', examples: ['Maintaining a work-life balance is important.', 'He lost his balance and fell.'] },
-    { word: 'Curious', level: 'beginner', phonetic: '/ˈkjʊr.i.əs/', translation: '好奇的', examples: ['Cats are naturally curious.', 'I am curious about the result.'] },
-    { word: 'Famous', level: 'beginner', phonetic: '/ˈfeɪ.məs/', translation: '著名的', examples: ['She is a famous singer.', 'Paris is famous for its museums.'] },
-    { word: 'Honest', level: 'beginner', phonetic: '/ˈɑː.nɪst/', translation: '誠實的', examples: ['To be honest, I don\'t like it.', 'He gave an honest answer.'] },
-    { word: 'Imagine', level: 'beginner', phonetic: '/ɪˈmædʒ.ɪn/', translation: '想像', examples: ['Can you imagine living on Mars?', 'Imagine what we could do together.'] },
-    { word: 'Journey', level: 'beginner', phonetic: '/ˈdʒɝː.ni/', translation: '旅程', examples: ['It was a long and tiring journey.', 'Life is a beautiful journey.'] },
-    { word: 'Opinion', level: 'beginner', phonetic: '/əˈpɪn.jən/', translation: '意見', examples: ['In my opinion, this is better.', 'Everyone is entitled to their own opinion.'] },
-    { word: 'Patient', level: 'beginner', phonetic: '/ˈpeɪ.ʃənt/', translation: '有耐心的', examples: ['You need to be patient with children.', 'Please be patient; we are working on it.'] },
-
-    // Intermediate
-    { word: 'Fascinating', level: 'intermediate', phonetic: '/ˈfæs.ən.eɪ.tɪŋ/', translation: '迷人的；極有吸引力的', examples: ['The book I read last night was truly fascinating.', 'The documentary offers a fascinating insight.'] },
-    { word: 'Accomplish', level: 'intermediate', phonetic: '/əˈkɑːm.plɪʃ/', translation: '完成；實現', examples: ['We can accomplish great things together.', 'It took her three years to accomplish her goal.'] },
-    { word: 'Versatile', level: 'intermediate', phonetic: '/ˈvɝː.sə.t̬əl/', translation: '多才多藝的；多用途的', examples: ['He is a versatile actor.', 'This kitchen tool is incredibly versatile.'] },
-    { word: 'Challenge', level: 'intermediate', phonetic: '/ˈtʃæl.ɪndʒ/', translation: '挑戰', examples: ['Learning a new language is a challenge.', 'We faced many challenges during the project.'] },
-    { word: 'Distraction', level: 'intermediate', phonetic: '/dɪˈstræk.ʃən/', translation: '分心；分心事物', examples: ['I need quiet to work without distractions.', 'Phone notifications are a major distraction.'] },
-    { word: 'Enthusiastic', level: 'intermediate', phonetic: '/ɪnˌθuː.ziˈæs.tɪk/', translation: '熱情的', examples: ['The team was very enthusiastic about the plan.', 'She is an enthusiastic supporter of the arts.'] },
-    { word: 'Alternative', level: 'intermediate', phonetic: '/ɑːlˈtɝː.nə.t̬ɪv/', translation: '替代方案', examples: ['We need to find an alternative solution.', 'Is there any alternative to surgery?'] },
-    { word: 'Beneficial', level: 'intermediate', phonetic: '/ˌben.əˈfɪʃ.əl/', translation: '有益的', examples: ['Regular exercise is beneficial to health.', 'This experience was very beneficial for me.'] },
-    { word: 'Consequence', level: 'intermediate', phonetic: '/ˈkɑːn.sə.kwəns/', translation: '後果', examples: ['Actions have consequences.', 'We must consider the consequence of our choice.'] },
-    { word: 'Efficient', level: 'intermediate', phonetic: '/ɪˈfɪʃ.ənt/', translation: '有效率的', examples: ['The new system is much more efficient.', 'She is an efficient worker.'] },
-    { word: 'Fundamental', level: 'intermediate', phonetic: '/ˌfʌn.dəˈmen.t̬əl/', translation: '基礎的；根本的', examples: ['Education is a fundamental right.', 'There are fundamental differences between them.'] },
-    { word: 'Guarantee', level: 'intermediate', phonetic: '/ˌɡer.ənˈtiː/', translation: '保證', examples: ['We cannot guarantee success.', 'The product comes with a two-year guarantee.'] },
-    { word: 'Negotiate', level: 'intermediate', phonetic: '/nəˈɡoʊ.ʃi.eɪt/', translation: '協商；談判', examples: ['They are trying to negotiate a new contract.', 'He skills are useful when you negotiate.'] },
-    { word: 'Objective', level: 'intermediate', phonetic: '/əbˈdʒektɪv/', translation: '目標', examples: ['Our primary objective is to improve quality.', 'Try to be objective when judging the work.'] },
-    { word: 'Significant', level: 'intermediate', phonetic: '/sɪɡˈnɪf.ə.kənt/', translation: '重大的；顯著的', examples: ['There has been a significant improvement.', 'This is a significant discovery for science.'] },
-
-    // Advanced
-    { word: 'Resilient', level: 'advanced', phonetic: '/rɪˈzɪl.jənt/', translation: '有韌性的；適應力強的', examples: ['Children are often very resilient.', 'The economy is surprisingly resilient.'] },
-    { word: 'Empathy', level: 'advanced', phonetic: '/ˈem.pə.θi/', translation: '同理心；共鳴', examples: ['Having empathy is important for relationships.', 'He showed great empathy toward the victims.'] },
-    { word: 'Initiative', level: 'advanced', phonetic: '/ɪˈnɪʃ.ə.t̬ɪv/', translation: '主動性；倡議', examples: ['She took the initiative to organize the event.', 'The government launched a new initiative.'] },
-    { word: 'Innovative', level: 'advanced', phonetic: '/ˈɪn.ə.veɪ.t̬ɪv/', translation: '創新的', examples: ['The company is known for its innovative approach.', 'We need innovative solutions to this problem.'] },
-    { word: 'Plausible', level: 'advanced', phonetic: '/ˈplɑː.zə.bəl/', translation: '貌似合理的；說得通的', examples: ['The explanation sounds plausible.', 'Is there a plausible reason for the delay?'] },
-    { word: 'Ubiquitous', level: 'advanced', phonetic: '/juːˈbɪk.wə.t̬əs/', translation: '無所不在的', examples: ['Mobile phones are now ubiquitous.', 'His influence is ubiquitous in this industry.'] },
-    { word: 'Ambiguous', level: 'advanced', phonetic: '/æmˈbɪɡ.ju.əs/', translation: '含糊不清的', examples: ['His reply was somewhat ambiguous.', 'Legal documents should not be ambiguous.'] },
-    { word: 'Cognitive', level: 'advanced', phonetic: '/ˈkɑːɡ.nə.t̬ɪv/', translation: '認知的', examples: ['Cognitive development starts early in life.', 'Solving puzzles can improve cognitive skills.'] },
-    { word: 'Eloquent', level: 'advanced', phonetic: '/ˈel.ə.kwənt/', translation: '雄辯的；口才流利的', examples: ['She gave an eloquent speech.', 'The book provides an eloquent defense of his views.'] },
-    { word: 'Formidable', level: 'advanced', phonetic: '/fɔːrˈmɪd.ə.bəl/', translation: '令人敬畏的；難對付的', examples: ['The opponent was a formidable player.', 'She faced a formidable task ahead.'] },
-    { word: 'Impeccable', level: 'advanced', phonetic: '/ɪmˈpek.ə.bəl/', translation: '無懈可擊的', examples: ['Her English is impeccable.', 'His behavior during the event was impeccable.'] },
-    { word: 'Lucid', level: 'advanced', phonetic: '/ˈluː.sɪd/', translation: '清晰明瞭的', examples: ['The article provides a lucid explanation.', 'He gave a lucid account of the events.'] },
-    { word: 'Paramount', level: 'advanced', phonetic: '/ˈper.ə.maʊnt/', translation: '至上的；首要的', examples: ['Safety is paramount in this mission.', 'The needs of the patient are paramount.'] },
-    { word: 'Synthesis', level: 'advanced', phonetic: '/ˈsɪn.θə.sɪs/', translation: '綜合；合成', examples: ['The essay is a synthesis of several ideas.', 'Proteins are produced through chemical synthesis.'] },
-    { word: 'Tangible', level: 'advanced', phonetic: '/ˈtæn.dʒə.bəl/', translation: '實體的；有形的', examples: ['We need tangible evidence of success.', 'The results are finally tangible and clear.'] }
-];
+// (WORD_OF_THE_DAY_DB is now moved to js/words_db.js)
 
 const SCENARIO_DB = [
     // 食 (Food)
@@ -117,6 +66,13 @@ let isExampleRecording = false;
 let recordingExampleIndex = -1;
 let exampleAccumulatedTranscript = "";
 let exampleCurrentInterim = "";
+
+// Completion Tracking for Word of the Day
+let completedWords = [];
+try {
+    const stored = localStorage.getItem('speakAi_completedWords');
+    completedWords = stored ? JSON.parse(stored) : [];
+} catch(e) {}
 
 function initExampleSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -440,15 +396,20 @@ function getWordOfTheDay(forceRefresh = false) {
     let pool = db.filter(w => !savedWords.includes(w.word.toLowerCase()));
     
     // 2. Further filter out words in recent history
-    let freshPool = pool.filter(w => !seenHistory.includes(w.word));
+    let freshPool = pool.filter(w => !seenHistory.includes(w.word) && !completedWords.includes(w.word));
     
-    // If freshPool is empty (all non-saved words seen), use the pool of non-saved words
+    // 3. Fallback: If freshPool is empty, check if we have ANY non-completed words
+    if (freshPool.length === 0) {
+        freshPool = pool.filter(w => !completedWords.includes(w.word));
+    }
+
+    // If still empty (all non-saved words are completed), use the full non-saved pool
     if (freshPool.length === 0 && pool.length > 0) {
         freshPool = pool;
-        seenHistory = []; // Reset history for this level/subset
+        seenHistory = []; 
     }
     
-    // If EVERYTHING in this level is already saved, fallback to the full level DB
+    // If EVERYTHING in this level is already saved or completed, fallback to the full level DB
     if (freshPool.length === 0) {
         freshPool = db;
     }
@@ -503,9 +464,14 @@ function renderWordOfTheDay() {
                     <i class="fa-solid fa-calendar-day"></i>
                     <span>今日單字 (Word of the Day)</span>
                 </div>
-                <button id="refresh-word-btn" class="icon-btn" title="換一個單字" style="margin-left: auto; width: 28px; height: 28px; color: var(--text-secondary);">
-                    <i class="fa-solid fa-rotate"></i>
-                </button>
+                <div style="margin-left: auto; display: flex; gap: 4px;">
+                    <button id="mark-word-learned-btn" class="icon-btn" title="標記為已學會" style="width: 28px; height: 28px; color: var(--success);">
+                        <i class="fa-regular fa-circle-check"></i>
+                    </button>
+                    <button id="refresh-word-btn" class="icon-btn" title="換一個單字" style="width: 28px; height: 28px; color: var(--text-secondary);">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
             </div>
             <div class="word-card-body">
                 <h3 class="word-title">
@@ -611,10 +577,31 @@ function renderWordOfTheDay() {
                 getWordOfTheDay(true); // Force pick a new one
                 renderWordOfTheDay();
                 icon.classList.remove('fa-spin');
-                
-                // Also update the chat system prompt if needed (though it only updates on scenario start/init)
-                // For simplicity, we just change the UI card.
             }, 500);
+        });
+    }
+
+    // Mark as Learned logic
+    const markLearnedBtn = document.getElementById('mark-word-learned-btn');
+    if (markLearnedBtn) {
+        markLearnedBtn.addEventListener('click', () => {
+            if (!wordObj) return;
+            
+            // Add to completed
+            if (!completedWords.includes(wordObj.word)) {
+                completedWords.push(wordObj.word);
+                localStorage.setItem('speakAi_completedWords', JSON.stringify(completedWords));
+            }
+            
+            // Visual feedback
+            const icon = markLearnedBtn.querySelector('i');
+            icon.className = 'fa-solid fa-circle-check';
+            
+            // Auto-refresh to next word
+            setTimeout(() => {
+                getWordOfTheDay(true); 
+                renderWordOfTheDay();
+            }, 600);
         });
     }
 }

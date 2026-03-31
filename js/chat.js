@@ -4,6 +4,7 @@ let currentScenario = null;
 let isTyping = false;
 let recognition = null;
 let isRecording = false;
+let recognitionAccumulated = "";
 
 document.addEventListener('DOMContentLoaded', () => {
     initChat();
@@ -252,7 +253,8 @@ function initSpeechRecognition() {
     
     recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
-    recognition.interimResults = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     
     const voiceBtn = document.getElementById('voice-input-btn');
@@ -276,17 +278,35 @@ function initSpeechRecognition() {
     
     recognition.onstart = function() {
         isRecording = true;
+        recognitionAccumulated = "";
         voiceBtn.classList.add('recording');
-        input.placeholder = "Listening...";
+        input.placeholder = "Listening... (Click again to stop)";
     };
     
     recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
-        // Append or replace the text in textarea
-        input.value = (input.value + " " + transcript).trim();
-        input.style.height = 'auto';
-        input.style.height = Math.min(input.scrollHeight, 100) + 'px';
-        sendBtn.removeAttribute('disabled');
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                interimTranscript += event.results[i][0].transcript;
+            }
+        }
+
+        if (finalTranscript) {
+            recognitionAccumulated += (recognitionAccumulated ? " " : "") + finalTranscript;
+        }
+
+        // Update the textarea with accumulated final results + current interim
+        const currentText = (recognitionAccumulated + (interimTranscript ? " " + interimTranscript : "")).trim();
+        if (currentText) {
+            input.value = currentText;
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+            sendBtn.removeAttribute('disabled');
+        }
     };
     
     recognition.onerror = function(event) {

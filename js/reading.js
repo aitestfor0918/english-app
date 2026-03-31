@@ -60,6 +60,13 @@ let isReadingRecording = false;
 let accumulatedTranscript = "";
 let currentInterim = "";
 
+// Completion Tracking
+let completedArticles = [];
+try {
+    const stored = localStorage.getItem('speakAi_completedArticles');
+    completedArticles = stored ? JSON.parse(stored) : [];
+} catch(e) {}
+
 document.addEventListener('DOMContentLoaded', () => {
     initReading();
     
@@ -101,16 +108,28 @@ function initReading() {
             icon.classList.add('fa-spin');
             
             const level = localStorage.getItem('user_level') || 'intermediate';
-            const filteredArticles = READING_ARTICLES.filter(a => a.level === level);
-            const db = filteredArticles.length > 0 ? filteredArticles : READING_ARTICLES;
+            // Use filtered list for refresh
+            const filteredArticles = READING_ARTICLES.filter(a => a.level === level && !completedArticles.includes(a.id));
+            const db = filteredArticles.length > 0 ? filteredArticles : READING_ARTICLES.filter(a => a.level === level);
+            const finalDb = db.length > 0 ? db : READING_ARTICLES;
 
-            // Randomly select another one different from the current
+            // Randomly select another one
             let nextIndex;
-            do {
-                nextIndex = Math.floor(Math.random() * db.length);
-            } while (nextIndex === db.indexOf(currentArticle) && db.length > 1);
+            if (finalDb.length <= 1) {
+                nextIndex = 0;
+            } else {
+                do {
+                    nextIndex = Math.floor(Math.random() * finalDb.length);
+                } while (finalDb[nextIndex].id === currentArticle?.id);
+            }
             
-            manualArticleIndex = nextIndex;
+            // We use the ID to find the actual index in the global READING_ARTICLES if needed, 
+            // but manualArticleIndex logic in current code is a bit different. 
+            // Let's just set the currentArticle directly or use a mock index.
+            const selected = finalDb[nextIndex];
+            currentArticle = selected;
+            // Overriding manual selection logic slightly for better filtering
+            manualArticleIndex = READING_ARTICLES.indexOf(selected);
             
             setTimeout(() => {
                 renderDailyArticle();
@@ -120,31 +139,66 @@ function initReading() {
     }
     
     initReadingSpeechRecognition();
+    initMarkAsComplete();
+}
+
+function initMarkAsComplete() {
+    const markBtn = document.getElementById('mark-complete-btn');
+    if (!markBtn) return;
+    
+    markBtn.addEventListener('click', () => {
+        if (!currentArticle) return;
+        
+        // Add to completed
+        if (!completedArticles.includes(currentArticle.id)) {
+            completedArticles.push(currentArticle.id);
+            localStorage.setItem('speakAi_completedArticles', JSON.stringify(completedArticles));
+        }
+        
+        // Visual feedback
+        const icon = markBtn.querySelector('i');
+        icon.className = 'fa-solid fa-circle-check';
+        markBtn.style.color = 'var(--success)';
+        
+        // Reset manual index and refresh to next available
+        setTimeout(() => {
+            manualArticleIndex = -1; // Force re-selection in getDailyArticle
+            renderDailyArticle();
+            icon.className = 'fa-regular fa-circle-check';
+        }, 600);
+    });
 }
 
 function getDailyArticle() {
     const level = localStorage.getItem('user_level') || 'intermediate';
-    const filteredArticles = READING_ARTICLES.filter(a => a.level === level);
+    // Filter out completed ones for this level
+    let filteredArticles = READING_ARTICLES.filter(a => a.level === level && !completedArticles.includes(a.id));
+    
+    // If all completed, reset/allow all for that level so the user still has content
+    if (filteredArticles.length === 0) {
+        filteredArticles = READING_ARTICLES.filter(a => a.level === level);
+    }
+    
+    // Fallback if level mismatch or DB empty
     const db = filteredArticles.length > 0 ? filteredArticles : READING_ARTICLES;
 
-    if (manualArticleIndex >= 0 && manualArticleIndex < db.length) {
-        return db[manualArticleIndex];
+    if (manualArticleIndex >= 0 && manualArticleIndex < READING_ARTICLES.length) {
+        const manualSelection = READING_ARTICLES[manualArticleIndex];
+        // If the manual selection was from a refresh, it should already be the right one.
+        return manualSelection;
     }
-
+    
     const now = new Date();
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const twTime = new Date(utc + (3600000 * 8));
-    
-    // Logical date (starts at 6am)
     const logicalDate = new Date(twTime.getTime() - (6 * 3600000)).toLocaleDateString();
     
-    // Use the logical date string to create a seed
     let seed = 0;
     for (let i = 0; i < logicalDate.length; i++) {
         seed += logicalDate.charCodeAt(i);
     }
     
-    const index = seed % db.length;
+    const index = Math.abs(seed) % db.length;
     return db[index];
 }
 
