@@ -40,7 +40,18 @@ const READING_ARTICLES = [
     { id: 'r37', level: 'beginner', title: 'The Joy of Bicycling', content: 'Riding a bicycle is an eco-friendly and enjoyable way to commute. It allows you to skip traffic jams while getting a great workout at the same time.' },
     { id: 'r38', level: 'beginner', title: 'Traditional Festivals', content: 'Celebrating traditional festivals brings families and communities together. These events are often marked by special foods, vibrant decorations, and beautiful cultural performances.' },
     { id: 'r39', level: 'advanced', title: 'Mindfulness Practices', content: 'Practicing mindfulness helps us stay focused on the present moment. Taking a few minutes to breathe deeply can clear our minds and improve emotional stability.' },
-    { id: 'r40', level: 'advanced', title: 'The Future of AI', content: 'Artificial intelligence is advancing at an unprecedented rate. It holds the potential to solve complex problems, but also raises important ethical questions for society.' }
+    { id: 'r40', level: 'advanced', title: 'The Future of AI', content: 'Artificial intelligence is advancing at an unprecedented rate. It holds the potential to solve complex problems, but also raises important ethical questions for society.' },
+    { id: 'r41', level: 'beginner', title: 'Pet Adoption', content: 'Adopting a pet from a shelter is a wonderful way to find a loyal companion. It gives a second chance to animals in need and brings joy to many households.' },
+    { id: 'r42', level: 'intermediate', title: 'Sustainable Living', content: 'Small changes in our daily habits can lead to a more sustainable lifestyle. Reducing waste, using public transport, and saving energy all contribute to a healthier planet.' },
+    { id: 'r43', level: 'advanced', title: 'The Philosophy of Stoicism', content: 'Stoicism teaches us to focus on what we can control and accept what we cannot. This ancient philosophy provides practical tools for maintaining inner peace in a chaotic world.' },
+    { id: 'r44', level: 'beginner', title: 'Learning to Cook', content: 'Cooking at home is not only healthier but also a great way to save money. Starting with simple recipes can build your confidence in the kitchen and lead to a new hobby.' },
+    { id: 'r45', level: 'intermediate', title: 'Remote Work Trends', content: 'The rise of remote work has changed how we think about the traditional office. While it offers flexibility, it also requires strong self-discipline and effective communication tools.' },
+    { id: 'r46', level: 'advanced', title: 'Interstellar Travel', content: 'The vast distances between stars make interstellar travel one of humanity\'s greatest challenges. Scientific breakthroughs in propulsion and life support are needed to make it a reality.' },
+    { id: 'r47', level: 'beginner', title: 'Visiting a Library', content: 'Libraries are quiet spaces where you can explore thousands of books for free. They are essential community hubs that provide access to knowledge and resources for everyone.' },
+    { id: 'r48', level: 'intermediate', title: 'The Impact of Social Media', content: 'Social media has revolutionized how we connect and share information. However, it is important to be aware of its effects on mental health and the spread of misinformation.' },
+    { id: 'r49', level: 'advanced', title: 'Quantum Computing', content: 'Quantum computers use the principles of quantum mechanics to perform calculations that are impossible for classical computers. This technology could transform fields like medicine and cryptography.' },
+    { id: 'r50', level: 'beginner', title: 'Morning Exercise', content: 'Starting your day with a short walk or some light stretching can significantly boost your energy levels. It helps wake up your body and prepares you for the tasks ahead.' }
+
 ];
 
 let currentArticle = null;
