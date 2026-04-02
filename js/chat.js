@@ -321,12 +321,7 @@ function initSpeechRecognition() {
         voiceBtn.classList.remove('recording');
         input.placeholder = "Type or say something in English...";
         
-        // Auto-send after a brief delay if text exists
-        if (input.value.trim().length > 0 && !sendBtn.disabled) {
-            setTimeout(() => {
-                if (!isTyping) handleSendMessage();
-            }, 800);
-        }
+        // Auto-send disabled per user request to allow manual editing
     };
 }
 

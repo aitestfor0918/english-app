@@ -4,6 +4,7 @@ let currentScenario = null;
 let isTyping = false;
 let recognition = null;
 let isRecording = false;
+let recognitionAccumulated = "";
 
 document.addEventListener('DOMContentLoaded', () => {
     initChat();
@@ -16,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('current-scenario-title').textContent = scenario.title;
         
         // Switch to chat view
-        document.querySelector('.nav-item[data-target="chat-view"]').click();
+        window.switchView('chat-view');
         
         // Stop any ongoing speech
         if ('speechSynthesis' in window) {
@@ -71,21 +72,21 @@ function resetChat(scenario, isInitialLoad = false) {
         }
     }
 
-    // Level-specific coaching instructions
+    // Level-specific coaching instructions (Calibrated to Taiwan Standards)
     let levelInstruction = "";
     if (level === 'beginner') {
-        levelInstruction = "The user is a BEGINNER (A1-A2). Use very simple words, basic grammar, and short sentences. Avoid all idioms, phrasal verbs, or complex metaphors. Your tone should be extremely encouraging and patient.";
+        levelInstruction = "The user is at a BEGINNER level (Equivalent to Taiwan Elementary to Junior High school, 國小至國中程度). Use only the most common 2,000 words. Use very simple grammar (Present/Past Simple) and short, direct sentences. Avoid idioms or complex phrasal verbs. Be extremely encouraging.";
     } else if (level === 'advanced') {
-        levelInstruction = "The user is ADVANCED (C1-C2). Use sophisticated vocabulary, complex sentence structures, and natural idioms/phrasal verbs. Challenge the user's comprehension and provide nuanced corrections.";
+        levelInstruction = "The user is at an ADVANCED level (Above Taiwan Senior High school, 高中以上程度). Use a wide range of sophisticated vocabulary, academic terms, and natural idioms. Use complex sentence structures and provide nuanced corrections on tone and style.";
     } else {
         // Intermediate
-        levelInstruction = "The user is INTERMEDIATE (B1-B2). Use standard natural English with mixed sentence lengths. Use common idioms occasionally to help the user grow. Balance clarity with natural flow.";
+        levelInstruction = "The user is at an INTERMEDIATE level (Equivalent to Taiwan Senior High school, 高中程度). Use vocabulary and grammar typical of a high school graduate (around 4,000-7,000 words). Use standard natural English with varied sentence lengths. Include common idioms to help them progress.";
     }
     
     conversationHistory = [
         {
             role: "user",
-            parts: [{text: `We are doing an English speaking practice roleplay. My name is ${nickname}. My English level is ${level}. ${levelInstruction} The scenario is: ${scenario.title}. ${scenario.desc}. ${wordContext}You will act as the person I am talking to in this scenario, but you are also my English coach. Always reply in English. Every time I reply, you should continue the conversation naturally. Adjust your vocabulary and sentence complexity to match my level strictly. If my English has grammatical errors, vocabulary mistakes, or unnatural phrasing, you must provide a correction. You MUST ONLY respond in valid JSON format with this exact structure (do not use markdown blocks for JSON, just pure JSON):\n{\n  "reply": "Your conversational response here",\n  "correction": {\n     "wrong": "The exact mistake I made (or null if perfect)",\n     "correct": "The corrected sentence (or null)",\n     "explanation": "Brief explanation in Traditional Chinese (or null)"\n  }\n}`}]
+            parts: [{text: `We are doing an English speaking practice roleplay. My name is ${nickname}. My English level is ${level}. ${levelInstruction} The scenario is: ${scenario.title}. ${scenario.desc}. ${wordContext}You will act as the person I am talking to in this scenario, but you are also my English coach. Always reply in English. Every time I reply, you should continue the conversation naturally. Keep your conversational response brief and concise (typically 1-2 sentences). Adjust your vocabulary and sentence complexity to match my level strictly. If my English has grammatical errors, vocabulary mistakes, or unnatural phrasing, you must provide a correction. You MUST ONLY respond in valid JSON format with this exact structure (do not use markdown blocks for JSON, just pure JSON):\n{\n  "reply": "Your concise conversational response here",\n  "correction": {\n     "wrong": "The exact mistake I made (or null if perfect)",\n     "correct": "The corrected sentence (or null)",\n     "explanation": "Brief explanation in Traditional Chinese (or null)"\n  }\n}`}]
         },
         {
             role: "model",
@@ -181,7 +182,7 @@ function appendAiMessage(text, correction = null, silent = false) {
         <div class="avatar ai-avatar"><i class="fa-solid fa-robot"></i></div>
         <div class="message-content">
             <div class="message-bubble">
-                <p class="translatable-text">${wrapWordsWithHover(text)}</p>
+                <p class="translatable-text">${wrapWordsWithHover(formatMessage(text))}</p>
                 <button class="icon-btn ai-pronounce-btn" title="聽發音">
                     <i class="fa-solid fa-volume-high"></i>
                 </button>
@@ -226,12 +227,14 @@ function appendAiMessage(text, correction = null, silent = false) {
 }
 
 function speakAiText(text) {
-    if (!('speechSynthesis' in window)) return;
+    if (!('speechSynthesis' in window) || !text) return;
     const isAutoSpeak = localStorage.getItem('auto_speak') !== 'false';
     if (!isAutoSpeak) return;
     
     // Remove markdown symbols (**, *, etc.) before speaking
-    const cleanText = text.replace(/[*#]/g, '');
+    // Added safety check to ensure text is a string
+    const cleanText = (typeof text === 'string') ? text.replace(/[*#]/g, '') : "";
+    if (!cleanText) return;
     
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'en-US';
@@ -250,7 +253,8 @@ function initSpeechRecognition() {
     
     recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
-    recognition.interimResults = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     
     const voiceBtn = document.getElementById('voice-input-btn');
@@ -274,17 +278,35 @@ function initSpeechRecognition() {
     
     recognition.onstart = function() {
         isRecording = true;
+        recognitionAccumulated = "";
         voiceBtn.classList.add('recording');
-        input.placeholder = "Listening...";
+        input.placeholder = "Listening... (Click again to stop)";
     };
     
     recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
-        // Append or replace the text in textarea
-        input.value = (input.value + " " + transcript).trim();
-        input.style.height = 'auto';
-        input.style.height = Math.min(input.scrollHeight, 100) + 'px';
-        sendBtn.removeAttribute('disabled');
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                interimTranscript += event.results[i][0].transcript;
+            }
+        }
+
+        if (finalTranscript) {
+            recognitionAccumulated += (recognitionAccumulated ? " " : "") + finalTranscript;
+        }
+
+        // Update the textarea with accumulated final results + current interim
+        const currentText = (recognitionAccumulated + (interimTranscript ? " " + interimTranscript : "")).trim();
+        if (currentText) {
+            input.value = currentText;
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+            sendBtn.removeAttribute('disabled');
+        }
     };
     
     recognition.onerror = function(event) {
@@ -299,12 +321,7 @@ function initSpeechRecognition() {
         voiceBtn.classList.remove('recording');
         input.placeholder = "Type or say something in English...";
         
-        // Auto-send after a brief delay if text exists
-        if (input.value.trim().length > 0 && !sendBtn.disabled) {
-            setTimeout(() => {
-                if (!isTyping) handleSendMessage();
-            }, 800);
-        }
+        // Auto-send disabled per user request to allow manual editing
     };
 }
 
@@ -344,7 +361,8 @@ function scrollToBottom() {
 }
 
 function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, 
+    if (!str) return "";
+    return String(str).replace(/[&<>'"]/g, 
         tag => ({
             '&': '&amp;',
             '<': '&lt;',
@@ -396,7 +414,7 @@ function simulateAiResponse(userText) {
         
         appendAiMessage(reply, correction);
         
-    }, 1500 + Math.random() * 1000); // 1.5 - 2.5 second delay
+    }, 500 + Math.random() * 500); // Reduced delay to 0.5 - 1.0 seconds
 }
 
 // REAL AI API CALL
@@ -417,23 +435,50 @@ async function callGeminiAPI(userText, apiKey) {
     });
 
     try {
-        // Use gemini-2.0-flash as confirmed in the user's supported models list
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: conversationHistory
-            })
-        });
+        let response;
+        const host = window.location.hostname;
+        const isLocal = host === 'localhost' || 
+                        host === '127.0.0.1' || 
+                        host.startsWith('192.168.') || 
+                        host.startsWith('10.') || 
+                        host.endsWith('.local') ||
+                        window.location.protocol === 'file:';
+
+        // Use the exact model name from the user's supported list: gemini-flash-latest
+        const modelName = "gemini-flash-latest";
+
+        if (isLocal && apiKey) {
+            // Local fallback: Direct call
+            const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            response = await fetch(directUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: conversationHistory
+                })
+            });
+        } else {
+            // Production or No-Key local: Vercel Proxy
+            const proxyUrl = `/api/chat`;
+            response = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey || ''
+                },
+                body: JSON.stringify({
+                    contents: conversationHistory
+                })
+            });
+        }
 
         const data = await response.json();
         removeTypingIndicator();
 
         if (data.error) {
-            throw new Error(data.error.message);
+            throw new Error(data.error.message || JSON.stringify(data.error));
         }
         
         const candidate = data.candidates && data.candidates[0];
@@ -449,8 +494,12 @@ async function callGeminiAPI(userText, apiKey) {
             throw new Error("AI 回覆的格式異常。");
         }
 
-        const aiText = candidate.content.parts[0].text;
+        const aiText = candidate.content.parts[0].text || "";
         
+        if (!aiText) {
+            throw new Error("AI 回覆的內容為空。");
+        }
+
         // Always add model's raw text to history FIRST to maintain 'user' -> 'model' alternating requirement
         conversationHistory.push({
             role: "model",
@@ -460,7 +509,10 @@ async function callGeminiAPI(userText, apiKey) {
         let aiJson;
         try {
             // Strip markdown code blocks just in case Gemini wrapped the JSON
-            const cleanedText = aiText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            // Added safety check to ensure aiText is a string
+            const cleanedText = typeof aiText === 'string' 
+                ? aiText.replace(/```json/gi, '').replace(/```/g, '').trim() 
+                : "";
             aiJson = JSON.parse(cleanedText);
         } catch (e) {
             console.error('Failed to parse AI JSON:', aiText);
@@ -474,36 +526,19 @@ async function callGeminiAPI(userText, apiKey) {
         removeTypingIndicator();
         console.error('API Error:', error);
         
-        let errorMsg = error.message;
-        if (errorMsg.includes('not found') || errorMsg.includes('ListModels')) {
-            try {
-                const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-                const listData = await listResp.json();
-                if (listData.models) {
-                    const available = listData.models
-                        .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
-                        .map(m => m.name.replace('models/', ''))
-                        .join(', ');
-                    if (available) {
-                         errorMsg = `您的金鑰所在專案可能存取權限不足，目前支援的模型為：[ ${available} ]。請複製並回報此訊息給開發者進行調整！`;
-                    } else {
-                         errorMsg = "這把 API Key 在伺服器端沒有開啟任何支援文字生成的模型權限。這通常是因為您申請的專案被限制或是所屬 Google 帳號異常。請嘗試使用不同的 Google 帳號申請看看！";
-                    }
-                } else if (listData.error) {
-                    errorMsg = `查詢可用模型失敗：${listData.error.message}`;
-                }
-            } catch(e) {
-                // Ignore fallback
-            }
-        } else if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
-            errorMsg = `網路連線問題，請檢查網路狀態。\n\n詳細錯誤: ${error.message}`;
+        let errorMsg = error.message || "Unknown error";
+        let displayMsg = errorMsg;
+
+        if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
+            displayMsg = `網路連線問題，請檢查網路狀態。如果您在本地執行，請確認「設定」中已填寫 API Key。\n\n詳細錯誤: ${errorMsg}`;
         } else if (errorMsg.toLowerCase().includes('quota') || errorMsg.includes('exhausted') || errorMsg.includes('429')) {
-            errorMsg = `API 請求頻率過快或已達免費額度上限（Gemini 免費版每分鐘最多 15 次），請稍等 10~20 秒後再試。\n\n詳細錯誤: ${error.message}`;
+            displayMsg = `API 請求頻率過快或已達免費額度上限，請稍等 10~20 秒後再試。\n\n詳細錯誤: ${errorMsg}`;
         } else if (errorMsg.includes('API_KEY_INVALID')) {
-            errorMsg = `API Key 似乎無效，請至右上方設定重新確認。\n\n詳細錯誤: ${error.message}`;
+            displayMsg = `API Key 似乎無效，請至右上方設定重新確認。\n\n詳細錯誤: ${errorMsg}`;
         }
-        
-        appendAiMessage(`⚠️ 系統提示：${errorMsg}`);
+
+        // Display the specific error in the chat
+        appendAiMessage(`⚠️ 系統提示：${displayMsg}`);
         
         // Remove the failed user message from history so they can retry
         if (conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1].role === 'user') {
@@ -716,13 +751,23 @@ function initHoverTranslation() {
     }
 }
 
-function wrapWordsWithHover(text) {
-    let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+function formatMessage(text) {
+    if (!text) return "";
+    // Added safety check and String cast to prevent .replace failure on null/undefined
+    let html = String(text).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
     html = html.replace(/\n/g, '<br>');
+    return html;
+}
+
+function wrapWordsWithHover(text) {
+    if (!text) return "";
+    
+    // Safety check for null text
+    const safeText = String(text);
     
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
+    tempDiv.innerHTML = safeText;
     
     const walk = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null, false);
     const textNodes = [];
@@ -733,8 +778,9 @@ function wrapWordsWithHover(text) {
     
     textNodes.forEach(node => {
         const textContent = node.nodeValue;
-        if (/[A-Za-z]/.test(textContent)) {
+        if (textContent && /[A-Za-z]/.test(textContent)) {
             const span = document.createElement('span');
+            // Added check to ensure textContent is not null before replace
             span.innerHTML = textContent.replace(/([A-Za-z]+(?:'[A-Za-z]+)?)/g, '<span class="hover-word" data-word="$1">$1</span>');
             node.parentNode.replaceChild(span, node);
         }

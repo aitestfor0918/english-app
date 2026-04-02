@@ -50,12 +50,14 @@ const SCENARIO_DB = [
 
 document.addEventListener('DOMContentLoaded', () => {
     renderWordOfTheDay();
+    renderPracticalPhrases();
     renderDailyScenarios();
     initScenarioRefresh();
     
     // Listen for level changes
     window.AppEventBus.on('user-level-updated', () => {
         renderWordOfTheDay();
+        renderPracticalPhrases();
     });
 
     initExampleSpeechRecognition();
@@ -69,9 +71,13 @@ let exampleCurrentInterim = "";
 
 // Completion Tracking for Word of the Day
 let completedWords = [];
+let completedPhrases = [];
 try {
-    const stored = localStorage.getItem('speakAi_completedWords');
-    completedWords = stored ? JSON.parse(stored) : [];
+    const storedWords = localStorage.getItem('speakAi_completedWords');
+    completedWords = storedWords ? JSON.parse(storedWords) : [];
+    
+    const storedPhrases = localStorage.getItem('speakAi_completedPhrases');
+    completedPhrases = storedPhrases ? JSON.parse(storedPhrases) : [];
 } catch(e) {}
 
 function initExampleSpeechRecognition() {
@@ -603,5 +609,208 @@ function renderWordOfTheDay() {
                 renderWordOfTheDay();
             }, 600);
         });
+    }
+}
+
+// --- Practical Phrases & Sentence Patterns ---
+
+function getPhrasesOfTheDay(forceRefresh = false) {
+    const level = localStorage.getItem('user_level') || 'intermediate';
+    const filteredDB = PHRASES_DB.filter(p => p.level === level);
+    const db = filteredDB.length > 0 ? filteredDB : PHRASES_DB;
+    
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const twTime = new Date(utc + (3600000 * 8));
+    const logicalDate = new Date(twTime.getTime() - (6 * 3600000)).toLocaleDateString();
+    
+    const stored = localStorage.getItem('speakAi_dailyPhrase');
+    if (stored && !forceRefresh) {
+        const parsed = JSON.parse(stored);
+        if (parsed.logicalDate === logicalDate) {
+            const found = db.find(p => p.phrase === parsed.phrase.phrase);
+            if (found) return found;
+        }
+    }
+    
+    let seenHistory = [];
+    let savedPhrases = [];
+    try {
+        const historyRaw = localStorage.getItem('speakAi_phraseHistory');
+        seenHistory = historyRaw ? JSON.parse(historyRaw) : [];
+        
+        const vocabRaw = localStorage.getItem('vocab_bank');
+        const vocabBank = vocabRaw ? JSON.parse(vocabRaw) : [];
+        savedPhrases = vocabBank.filter(i => i.type === 'phrase').map(p => p.word.toLowerCase());
+    } catch (e) {}
+
+    let pool = db.filter(p => !savedPhrases.includes(p.phrase.toLowerCase()));
+    let freshPool = pool.filter(p => !seenHistory.includes(p.phrase) && !completedPhrases.includes(p.phrase));
+    
+    if (freshPool.length === 0) {
+        freshPool = pool.filter(p => !completedPhrases.includes(p.phrase));
+    }
+
+    if (freshPool.length === 0 && pool.length > 0) {
+        freshPool = pool;
+        seenHistory = []; 
+    }
+    
+    if (freshPool.length === 0) {
+        freshPool = db;
+    }
+
+    let seed = 0;
+    for (let i = 0; i < logicalDate.length; i++) {
+        seed += logicalDate.charCodeAt(i);
+    }
+    
+    if (forceRefresh) seed += Math.floor(Math.random() * 1000);
+    
+    const index = Math.abs(seed) % freshPool.length;
+    const selectedPhrase = freshPool[index];
+    
+    const historyLimit = Math.floor(db.length * 0.7);
+    if (!seenHistory.includes(selectedPhrase.phrase)) {
+        seenHistory.unshift(selectedPhrase.phrase);
+    }
+    if (seenHistory.length > historyLimit) {
+        seenHistory = seenHistory.slice(0, historyLimit);
+    }
+    
+    localStorage.setItem('speakAi_phraseHistory', JSON.stringify(seenHistory));
+    localStorage.setItem('speakAi_dailyPhrase', JSON.stringify({
+        logicalDate: logicalDate,
+        phrase: selectedPhrase
+    }));
+    
+    return selectedPhrase;
+}
+
+function renderPracticalPhrases() {
+    const container = document.getElementById('phrases-of-the-day-container');
+    if (!container) return;
+    
+    const phraseObj = getPhrasesOfTheDay();
+    const isAlreadySaved = window.VocabBank && window.VocabBank.words.some(w => w.word.toLowerCase() === phraseObj.phrase.toLowerCase());
+    const starClass = isAlreadySaved ? 'fa-solid' : 'fa-regular';
+    
+    container.innerHTML = `
+        <div class="word-card" style="margin-top: 20px; border-top: 4px solid var(--secondary);">
+            <div class="word-card-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>今日片語 (Phrase of the Day)</span>
+                </div>
+                <div style="margin-left: auto; display: flex; gap: 4px;">
+                    <button id="mark-phrase-learned-btn" class="icon-btn" title="標記為已學會" style="width: 28px; height: 28px; color: var(--success);">
+                        <i class="fa-regular fa-circle-check"></i>
+                    </button>
+                    <button id="refresh-phrase-btn" class="icon-btn" title="換一個片語" style="width: 28px; height: 28px; color: var(--text-secondary);">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="word-card-body">
+                <h3 class="word-title">
+                    ${phraseObj.phrase}
+                    <button id="pronounce-phrase-title-btn" class="icon-btn" aria-label="發音" style="width: 32px; height: 32px; margin-left: auto; color: var(--secondary); background: rgba(168, 85, 247, 0.1);">
+                        <i class="fa-solid fa-volume-high" style="font-size: 0.9rem;"></i>
+                    </button>
+                    <button id="save-daily-phrase-btn" class="icon-btn" aria-label="收藏片語" title="加入單字庫" style="width: 32px; height: 32px; margin-left: 8px; color: var(--warning); background: rgba(245, 158, 11, 0.1);">
+                        <i class="${starClass} fa-star" style="font-size: 0.9rem;"></i>
+                    </button>
+                </h3>
+                <p class="word-translation">${phraseObj.translation}</p>
+                <p style="margin: 0 0 16px 0; color: var(--text-secondary); font-size: 0.9rem; font-style: italic;">${phraseObj.meaning}</p>
+                
+                <div class="word-examples-container">
+                    ${phraseObj.examples.map((ex, idx) => `
+                        <div class="word-example-item" style="margin-bottom: 12px; border-bottom: 1px dashed rgba(0,0,0,0.05); padding-bottom: 8px;">
+                            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                <button class="icon-btn pronounce-phrase-ex-btn" data-text="${ex.replace(/"/g, '&quot;')}" title="朗讀整句" style="flex-shrink: 0; width: 28px; height: 28px; color: var(--secondary); background: rgba(168, 85, 247, 0.1);">
+                                    <i class="fa-solid fa-volume-high" style="font-size: 0.8rem;"></i>
+                                </button>
+                                <div class="example-text-content">
+                                    <p style="margin: 0; line-height: 1.5; color: var(--text-primary); font-size: 0.95rem;">"${ex}"</p>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Titile Pronounce
+    const titlePronounceBtn = document.getElementById('pronounce-phrase-title-btn');
+    if (titlePronounceBtn) {
+        titlePronounceBtn.addEventListener('click', () => speakText(phraseObj.phrase));
+    }
+    
+    // Example Pronounce
+    container.querySelectorAll('.pronounce-phrase-ex-btn').forEach(btn => {
+        btn.addEventListener('click', () => speakText(btn.getAttribute('data-text')));
+    });
+    
+    // Save to Vocab Bank
+    const saveBtn = document.getElementById('save-daily-phrase-btn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            if (window.VocabBank) {
+                const icon = saveBtn.querySelector('i');
+                const isSaved = icon.classList.contains('fa-solid');
+                if (isSaved) {
+                    window.VocabBank.removeWord(phraseObj.phrase);
+                    icon.className = 'fa-regular fa-star';
+                } else {
+                    // Pass a type so we can distinguish phrases in logic if needed
+                    window.VocabBank.saveWord(phraseObj.phrase, phraseObj.translation);
+                    icon.className = 'fa-solid fa-star';
+                }
+            }
+        });
+    }
+    
+    // Mark as Learned
+    const markBtn = document.getElementById('mark-phrase-learned-btn');
+    if (markBtn) {
+        markBtn.addEventListener('click', () => {
+            if (!phraseObj) return;
+            if (!completedPhrases.includes(phraseObj.phrase)) {
+                completedPhrases.push(phraseObj.phrase);
+                localStorage.setItem('speakAi_completedPhrases', JSON.stringify(completedPhrases));
+            }
+            const icon = markBtn.querySelector('i');
+            icon.className = 'fa-solid fa-circle-check';
+            setTimeout(() => {
+                getPhrasesOfTheDay(true);
+                renderPracticalPhrases();
+            }, 600);
+        });
+    }
+
+    // Refresh
+    const refreshBtn = document.getElementById('refresh-phrase-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            const icon = refreshBtn.querySelector('i');
+            icon.classList.add('fa-spin');
+            setTimeout(() => {
+                getPhrasesOfTheDay(true);
+                renderPracticalPhrases();
+                icon.classList.remove('fa-spin');
+            }, 500);
+        });
+    }
+}
+
+function speakText(text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
     }
 }

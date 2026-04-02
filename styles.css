@@ -1284,3 +1284,24 @@ textarea {
 }
 
 
+/* Practical Phrases Styles */
+.phrases-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.phrase-item {
+    animation: fadeIn 0.5s ease backwards;
+}
+
+.phrase-item:last-child {
+    border-bottom: none !important;
+}
+
+.pronounce-phrase-btn, .pronounce-phrase-example-btn {
+    transition: var(--transition);
+}
+
+.pronounce-phrase-btn:hover, .pronounce-phrase-example-btn:hover {
+    transform: scale(1.1);
+}

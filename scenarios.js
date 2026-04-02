@@ -1,110 +1,6 @@
 // Scenarios Management
 
-const WORD_OF_THE_DAY_DB = [
-    // Beginner
-    { 
-        word: 'Creative', level: 'beginner',
-        phonetic: '/kriˈeɪ.t̬ɪv/', 
-        translation: '有創造力的', 
-        examples: [
-            'Children are very creative.',
-            'She has some creative ideas for the project.',
-            'He is a creative designer.'
-        ]
-    },
-    { 
-        word: 'Reliable', level: 'beginner',
-        phonetic: '/rɪˈlaɪ.ə.bəl/', 
-        translation: '可靠的', 
-        examples: [
-            'My car is old but reliable.',
-            'He is a reliable friend.',
-            'We need a reliable source of information.'
-        ]
-    },
-    { 
-        word: 'Opportunity', level: 'beginner',
-        phonetic: '/ˌɑː.pɚˈtuː.nə.t̬i/', 
-        translation: '機會', 
-        examples: [
-            'This is a great opportunity to learn.',
-            'Don\'t miss this opportunity.',
-            'I had the opportunity to travel to Japan.'
-        ]
-    },
-    // Intermediate
-    { 
-        word: 'Fascinating', level: 'intermediate',
-        phonetic: '/ˈfæs.ən.eɪ.tɪŋ/', 
-        translation: '迷人的；極有吸引力的', 
-        examples: [
-            'The book I read last night was truly fascinating.',
-            'The documentary offers a fascinating insight into the world of insects.',
-            'He has such a fascinating collection of old coins.'
-        ]
-    },
-    { 
-        word: 'Accomplish', level: 'intermediate',
-        phonetic: '/əˈkɑːm.plɪʃ/', 
-        translation: '完成；實現', 
-        examples: [
-            'We can accomplish great things if we work together.',
-            'It took her three years to accomplish her goal of writing a novel.',
-            'You can accomplish anything if you believe in yourself.'
-        ]
-    },
-    { 
-        word: 'Versatile', level: 'intermediate',
-        phonetic: '/ˈvɝː.sə.t̬əl/', 
-        translation: '多才多藝的；多用途的', 
-        examples: [
-            'He is a versatile actor who can play a wide variety of roles.',
-            'This kitchen tool is incredibly versatile; it can chop, slice, and dice.',
-            'Egg is a versatile ingredient that can be used in many different dishes.'
-        ]
-    },
-    // Advanced
-    { 
-        word: 'Resilient', level: 'advanced',
-        phonetic: '/rɪˈzɪl.jənt/', 
-        translation: '有韌性的；適應力強的', 
-        examples: [
-            'Children are often very resilient and recover quickly from difficult times.',
-            'The economy is surprisingly resilient despite the recent global crisis.',
-            'She is a resilient woman who has overcome many challenges in her life.'
-        ]
-    },
-    { 
-        word: 'Empathy', level: 'advanced',
-        phonetic: '/ˈem.pə.θi/', 
-        translation: '同理心；共鳴', 
-        examples: [
-            'Having empathy is important for building strong relationships.',
-            'Waiters should have empathy for their customers especially when they are in a rush.',
-            'He showed great empathy toward the victims of the natural disaster.'
-        ]
-    },
-    { 
-        word: 'Initiative', level: 'advanced',
-        phonetic: '/ɪˈnɪʃ.ə.t̬ɪv/', 
-        translation: '主動性；倡議', 
-        examples: [
-            'She took the initiative to organize the company event.',
-            'The government has launched a new initiative to reduce carbon emissions.',
-            'In a team setting, it is important to take initiative when you see something needs to be done.'
-        ]
-    },
-    { 
-        word: 'Innovative', level: 'advanced',
-        phonetic: '/ˈɪn.ə.veɪ.t̬ɪv/', 
-        translation: '創新的', 
-        examples: [
-            'The company is known for its innovative approach to software design.',
-            'We are looking for innovative solutions to this complex problem.',
-            'The artist uses innovative techniques to create stunning visual effects.'
-        ]
-    }
-];
+// (WORD_OF_THE_DAY_DB is now moved to js/words_db.js)
 
 const SCENARIO_DB = [
     // 食 (Food)
@@ -154,14 +50,175 @@ const SCENARIO_DB = [
 
 document.addEventListener('DOMContentLoaded', () => {
     renderWordOfTheDay();
+    renderPracticalPhrases();
     renderDailyScenarios();
     initScenarioRefresh();
     
     // Listen for level changes
     window.AppEventBus.on('user-level-updated', () => {
         renderWordOfTheDay();
+        renderPracticalPhrases();
     });
+
+    initExampleSpeechRecognition();
 });
+
+let exampleRecognition = null;
+let isExampleRecording = false;
+let recordingExampleIndex = -1;
+let exampleAccumulatedTranscript = "";
+let exampleCurrentInterim = "";
+
+// Completion Tracking for Word of the Day
+let completedWords = [];
+let completedPhrases = [];
+try {
+    const storedWords = localStorage.getItem('speakAi_completedWords');
+    completedWords = storedWords ? JSON.parse(storedWords) : [];
+    
+    const storedPhrases = localStorage.getItem('speakAi_completedPhrases');
+    completedPhrases = storedPhrases ? JSON.parse(storedPhrases) : [];
+} catch(e) {}
+
+function initExampleSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    
+    exampleRecognition = new SpeechRecognition();
+    exampleRecognition.lang = 'en-US';
+    exampleRecognition.continuous = true;
+    exampleRecognition.interimResults = true;
+    exampleRecognition.maxAlternatives = 1;
+    
+    exampleRecognition.onstart = () => {
+        isExampleRecording = true;
+        exampleAccumulatedTranscript = "";
+        exampleCurrentInterim = "";
+        
+        const btn = document.querySelector(`.mic-example-btn[data-index="${recordingExampleIndex}"]`);
+        if (btn) {
+            btn.innerHTML = '<i class="fa-solid fa-stop-circle fa-beat"></i>';
+            btn.classList.add('recording');
+            btn.style.color = 'var(--error)';
+        }
+    };
+    
+    exampleRecognition.onresult = (event) => {
+        let interimText = '';
+        let finalChunk = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalChunk += event.results[i][0].transcript;
+            } else {
+                interimText += event.results[i][0].transcript;
+            }
+        }
+        if (finalChunk) {
+            exampleAccumulatedTranscript += finalChunk + " ";
+        }
+        exampleCurrentInterim = interimText;
+    };
+    
+    exampleRecognition.onerror = (event) => {
+        console.error("Example recognition error", event.error);
+        if (event.error !== 'aborted') {
+            stopExampleRecording();
+        }
+    };
+    
+    exampleRecognition.onend = () => {
+        if (isExampleRecording) {
+            const finalTranscript = (exampleAccumulatedTranscript + " " + exampleCurrentInterim).trim();
+            const index = recordingExampleIndex;
+            stopExampleRecording();
+            if (finalTranscript.length > 0) {
+                analyzeExamplePronunciation(finalTranscript, index);
+            }
+        }
+    };
+}
+
+function toggleExampleRecording(index) {
+    if (!exampleRecognition) {
+        alert("您的瀏覽器不支援語音識別。");
+        return;
+    }
+    
+    if (isExampleRecording) {
+        if (recordingExampleIndex === index) {
+            exampleRecognition.stop();
+            // onend will handle the analysis
+        } else {
+            // Already recording another one? Ignore or switch.
+            exampleRecognition.stop();
+        }
+    } else {
+        recordingExampleIndex = index;
+        // Hide previous feedback for this sentence
+        const feedbackEl = document.getElementById(`example-feedback-${index}`);
+        if (feedbackEl) feedbackEl.classList.add('hidden');
+        
+        try {
+            exampleRecognition.start();
+        } catch(e) {
+            console.error(e);
+        }
+    }
+}
+
+function stopExampleRecording() {
+    isExampleRecording = false;
+    const btns = document.querySelectorAll('.mic-example-btn');
+    btns.forEach(btn => {
+        btn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+        btn.classList.remove('recording');
+        btn.style.color = 'var(--primary)';
+    });
+}
+
+function analyzeExamplePronunciation(transcript, index) {
+    const wordObj = getWordOfTheDay();
+    if (!wordObj || !wordObj.examples[index]) return;
+    
+    const original = wordObj.examples[index];
+    // Added null checks to avoid "Cannot read properties of null (reading 'toLowerCase')"
+    const cleanOriginal = (original || "").toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+    const cleanSpoken = (transcript || "").toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+    
+    const originalWords = cleanOriginal.split(/\s+/);
+    const spokenWords = cleanSpoken.split(/\s+/);
+    
+    let matchCount = 0;
+    const feedbackWords = [];
+    const displayWords = (original || "").split(/\s+/);
+    
+    displayWords.forEach(displayWord => {
+        const cleanWord = displayWord.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+        if (spokenWords.includes(cleanWord)) {
+            matchCount++;
+            feedbackWords.push(`<span style="color: #10b981; font-weight: 500;">${displayWord}</span>`);
+        } else {
+            feedbackWords.push(`<span style="color: #f43f5e; font-weight: 500; text-decoration: underline wavy #f43f5e;">${displayWord}</span>`);
+        }
+    });
+    
+    const score = Math.round((matchCount / originalWords.length) * 100);
+    const feedbackEl = document.getElementById(`example-feedback-${index}`);
+    
+    if (feedbackEl) {
+        feedbackEl.innerHTML = `
+            <div style="margin-top: 10px; padding: 12px; background: rgba(0,0,0,0.03); border-radius: 8px; font-size: 0.95rem;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem;">${score}%</div>
+                    <strong style="color: var(--text-primary);">準確度分值</strong>
+                </div>
+                <div style="line-height: 1.6; margin-bottom: 8px;">${feedbackWords.join(' ')}</div>
+                <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem; font-style: italic;">您的錄音: "${transcript}"</p>
+            </div>
+        `;
+        feedbackEl.classList.remove('hidden');
+    }
+}
 
 function getDailyScenarios(forceRefresh = false) {
     // 6:00 AM Taiwan time (UTC+8) logic
@@ -249,8 +306,37 @@ function renderDailyScenarios(forceRefresh = false) {
     const scenarios = getDailyScenarios(forceRefresh).slice(0, 4);
     container.innerHTML = '';
     
+    // Add Free Chat as the first card (Fixed)
+    const freeChatCard = document.createElement('div');
+    freeChatCard.className = 'scenario-card';
+    freeChatCard.style.animation = `fadeIn 0.5s ease 0s backwards`;
+    freeChatCard.innerHTML = `
+        <div class="scenario-icon" style="color: var(--secondary); background: rgba(168, 85, 247, 0.1);">
+            <i class="fa-solid fa-robot"></i>
+        </div>
+        <div class="scenario-info">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span style="background: var(--secondary); color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold;">推薦</span>
+                <h3>自由對話</h3>
+            </div>
+            <p>這是一個自由聊天的空間，沒有任何主題限制，隨便聊聊！</p>
+        </div>
+        <div class="scenario-action">
+            <i class="fa-solid fa-chevron-right"></i>
+        </div>
+    `;
+    freeChatCard.addEventListener('click', () => {
+        window.AppEventBus.emit('start-scenario', {
+            id: 'free',
+            title: '自由對話',
+            desc: '這是一個自由聊天的空間，沒有任何話題限制！'
+        });
+    });
+    container.appendChild(freeChatCard);
+
+    // Add the 4 randomized scenarios
     scenarios.forEach((scenario, index) => {
-        const delay = index * 0.1; // Staggered animation effect
+        const delay = (index + 1) * 0.1; // Staggered animation effect
         const card = document.createElement('div');
         card.className = 'scenario-card';
         card.style.animation = `fadeIn 0.5s ease ${delay}s backwards`;
@@ -278,20 +364,92 @@ function renderDailyScenarios(forceRefresh = false) {
     });
 }
 
-function getWordOfTheDay() {
+function getWordOfTheDay(forceRefresh = false) {
     const level = localStorage.getItem('user_level') || 'intermediate';
     const filteredDB = WORD_OF_THE_DAY_DB.filter(w => w.level === level);
-    
-    // Fallback if no words for this level
     const db = filteredDB.length > 0 ? filteredDB : WORD_OF_THE_DAY_DB;
     
-    const today = new Date().toLocaleDateString();
-    let seed = 0;
-    for (let i = 0; i < today.length; i++) {
-        seed += today.charCodeAt(i);
+    // 6:00 AM Taiwan time logic
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const twTime = new Date(utc + (3600000 * 8));
+    const logicalDate = new Date(twTime.getTime() - (6 * 3600000)).toLocaleDateString();
+    
+    const stored = localStorage.getItem('speakAi_dailyWord');
+    if (stored && !forceRefresh) {
+        const parsed = JSON.parse(stored);
+        if (parsed.logicalDate === logicalDate) {
+            // Find the word in the current DB to ensure it exists
+            const found = db.find(w => w.word === parsed.word.word);
+            if (found) return found;
+        }
     }
-    const index = seed % db.length;
-    return db[index];
+    
+    // Improved Selection Logic: Pick a word that hasn't been seen recently
+    // AND is not already in the user's vocabulary bank
+    let seenHistory = [];
+    let savedWords = [];
+    try {
+        const historyRaw = localStorage.getItem('speakAi_wordHistory');
+        seenHistory = historyRaw ? JSON.parse(historyRaw) : [];
+        
+        const vocabRaw = localStorage.getItem('vocab_bank');
+        const vocabBank = vocabRaw ? JSON.parse(vocabRaw) : [];
+        savedWords = vocabBank.map(w => w.word.toLowerCase());
+    } catch (e) {}
+
+    // 1. Filter out words already in the vocabulary bank
+    let pool = db.filter(w => !savedWords.includes(w.word.toLowerCase()));
+    
+    // 2. Further filter out words in recent history
+    let freshPool = pool.filter(w => !seenHistory.includes(w.word) && !completedWords.includes(w.word));
+    
+    // 3. Fallback: If freshPool is empty, check if we have ANY non-completed words
+    if (freshPool.length === 0) {
+        freshPool = pool.filter(w => !completedWords.includes(w.word));
+    }
+
+    // If still empty (all non-saved words are completed), use the full non-saved pool
+    if (freshPool.length === 0 && pool.length > 0) {
+        freshPool = pool;
+        seenHistory = []; 
+    }
+    
+    // If EVERYTHING in this level is already saved or completed, fallback to the full level DB
+    if (freshPool.length === 0) {
+        freshPool = db;
+    }
+
+    // Pick a word semi-randomly but persistently for the day based on logicalDate
+    let seed = 0;
+    for (let i = 0; i < logicalDate.length; i++) {
+        seed += logicalDate.charCodeAt(i);
+    }
+    
+    // If forced refresh, add some randomness
+    if (forceRefresh) {
+        seed += Math.floor(Math.random() * 1000);
+    }
+    
+    const index = Math.abs(seed) % freshPool.length;
+    const selectedWord = freshPool[index];
+    
+    // Update history: Add to front, keep only last N (e.g. 70% of DB size)
+    const historyLimit = Math.floor(db.length * 0.7);
+    if (!seenHistory.includes(selectedWord.word)) {
+        seenHistory.unshift(selectedWord.word);
+    }
+    if (seenHistory.length > historyLimit) {
+        seenHistory = seenHistory.slice(0, historyLimit);
+    }
+    
+    localStorage.setItem('speakAi_wordHistory', JSON.stringify(seenHistory));
+    localStorage.setItem('speakAi_dailyWord', JSON.stringify({
+        logicalDate: logicalDate,
+        word: selectedWord
+    }));
+    
+    return selectedWord;
 }
 
 function renderWordOfTheDay() {
@@ -302,11 +460,24 @@ function renderWordOfTheDay() {
     const isAlreadySaved = window.VocabBank && window.VocabBank.words.some(w => w.word.toLowerCase() === wordObj.word.toLowerCase());
     const starClass = isAlreadySaved ? 'fa-solid' : 'fa-regular';
     
+    // Limits examples to 2 as requested
+    const examplesToShow = wordObj.examples.slice(0, 2);
+
     container.innerHTML = `
         <div class="word-card">
             <div class="word-card-header">
-                <i class="fa-solid fa-calendar-day"></i>
-                <span>今日單字 (Word of the Day)</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-calendar-day"></i>
+                    <span>今日單字 (Word of the Day)</span>
+                </div>
+                <div style="margin-left: auto; display: flex; gap: 4px;">
+                    <button id="mark-word-learned-btn" class="icon-btn" title="標記為已學會" style="width: 28px; height: 28px; color: var(--success);">
+                        <i class="fa-regular fa-circle-check"></i>
+                    </button>
+                    <button id="refresh-word-btn" class="icon-btn" title="換一個單字" style="width: 28px; height: 28px; color: var(--text-secondary);">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
             </div>
             <div class="word-card-body">
                 <h3 class="word-title">
@@ -321,14 +492,20 @@ function renderWordOfTheDay() {
                 </h3>
                 <p class="word-translation">${wordObj.translation}</p>
                 <div class="word-examples-container">
-                    ${wordObj.examples.map((ex, idx) => `
-                        <div class="word-example-item" style="margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px;">
-                            <button class="icon-btn pronounce-example-btn" data-index="${idx}" title="監聽整句發音" style="flex-shrink: 0; width: 28px; height: 28px; margin-top: 2px; color: var(--primary); background: rgba(129, 140, 248, 0.1);">
-                                <i class="fa-solid fa-volume-high" style="font-size: 0.8rem;"></i>
-                            </button>
-                            <div class="example-text-content">
-                                <p style="margin: 0; line-height: 1.5; color: var(--text-primary);">"${wrapWordsWithHover(ex)}"</p>
+                    ${examplesToShow.map((ex, idx) => `
+                        <div class="word-example-item" style="margin-bottom: 16px; border-bottom: 1px dashed rgba(0,0,0,0.05); padding-bottom: 12px;">
+                            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                <button class="icon-btn pronounce-example-btn" data-index="${idx}" title="監聽整句發音" style="flex-shrink: 0; width: 28px; height: 28px; margin-top: 2px; color: var(--primary); background: rgba(129, 140, 248, 0.1);">
+                                    <i class="fa-solid fa-volume-high" style="font-size: 0.8rem;"></i>
+                                </button>
+                                <button class="icon-btn mic-example-btn" data-index="${idx}" title="開始朗讀練習" style="flex-shrink: 0; width: 28px; height: 28px; margin-top: 2px; color: var(--primary); background: rgba(129, 140, 248, 0.1);">
+                                    <i class="fa-solid fa-microphone" style="font-size: 0.8rem;"></i>
+                                </button>
+                                <div class="example-text-content">
+                                    <p style="margin: 0; line-height: 1.5; color: var(--text-primary);">"${wrapWordsWithHover(ex)}"</p>
+                                </div>
                             </div>
+                            <div id="example-feedback-${idx}" class="example-feedback-area hidden"></div>
                         </div>
                     `).join('')}
                 </div>
@@ -350,12 +527,12 @@ function renderWordOfTheDay() {
         });
     }
     
-    // Attach listeners for multiple examples (Full Sentence Pronunciation)
+    // Attach listeners for microphone and pronunciation logic
     container.querySelectorAll('.pronounce-example-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const idx = btn.getAttribute('data-index');
-            const text = wordObj.examples[idx];
+            const idx = parseInt(btn.getAttribute('data-index'));
+            const text = examplesToShow[idx];
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
@@ -365,7 +542,15 @@ function renderWordOfTheDay() {
             }
         });
     });
-    
+
+    container.querySelectorAll('.mic-example-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.getAttribute('data-index'));
+            toggleExampleRecording(idx);
+        });
+    });
+
     const saveDailyBtn = document.getElementById('save-daily-word-btn');
     if (saveDailyBtn) {
         saveDailyBtn.addEventListener('click', (e) => {
@@ -385,5 +570,247 @@ function renderWordOfTheDay() {
                 }
             }
         });
+    }
+
+    // Refresh Word of the Day logic
+    const refreshWordBtn = document.getElementById('refresh-word-btn');
+    if (refreshWordBtn) {
+        refreshWordBtn.addEventListener('click', () => {
+            const icon = refreshWordBtn.querySelector('i');
+            icon.classList.add('fa-spin');
+            
+            setTimeout(() => {
+                getWordOfTheDay(true); // Force pick a new one
+                renderWordOfTheDay();
+                icon.classList.remove('fa-spin');
+            }, 500);
+        });
+    }
+
+    // Mark as Learned logic
+    const markLearnedBtn = document.getElementById('mark-word-learned-btn');
+    if (markLearnedBtn) {
+        markLearnedBtn.addEventListener('click', () => {
+            if (!wordObj) return;
+            
+            // Add to completed
+            if (!completedWords.includes(wordObj.word)) {
+                completedWords.push(wordObj.word);
+                localStorage.setItem('speakAi_completedWords', JSON.stringify(completedWords));
+            }
+            
+            // Visual feedback
+            const icon = markLearnedBtn.querySelector('i');
+            icon.className = 'fa-solid fa-circle-check';
+            
+            // Auto-refresh to next word
+            setTimeout(() => {
+                getWordOfTheDay(true); 
+                renderWordOfTheDay();
+            }, 600);
+        });
+    }
+}
+
+// --- Practical Phrases & Sentence Patterns ---
+
+function getPhrasesOfTheDay(forceRefresh = false) {
+    const level = localStorage.getItem('user_level') || 'intermediate';
+    const filteredDB = PHRASES_DB.filter(p => p.level === level);
+    const db = filteredDB.length > 0 ? filteredDB : PHRASES_DB;
+    
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const twTime = new Date(utc + (3600000 * 8));
+    const logicalDate = new Date(twTime.getTime() - (6 * 3600000)).toLocaleDateString();
+    
+    const stored = localStorage.getItem('speakAi_dailyPhrase');
+    if (stored && !forceRefresh) {
+        const parsed = JSON.parse(stored);
+        if (parsed.logicalDate === logicalDate) {
+            const found = db.find(p => p.phrase === parsed.phrase.phrase);
+            if (found) return found;
+        }
+    }
+    
+    let seenHistory = [];
+    let savedPhrases = [];
+    try {
+        const historyRaw = localStorage.getItem('speakAi_phraseHistory');
+        seenHistory = historyRaw ? JSON.parse(historyRaw) : [];
+        
+        const vocabRaw = localStorage.getItem('vocab_bank');
+        const vocabBank = vocabRaw ? JSON.parse(vocabRaw) : [];
+        savedPhrases = vocabBank.filter(i => i.type === 'phrase').map(p => p.word.toLowerCase());
+    } catch (e) {}
+
+    let pool = db.filter(p => !savedPhrases.includes(p.phrase.toLowerCase()));
+    let freshPool = pool.filter(p => !seenHistory.includes(p.phrase) && !completedPhrases.includes(p.phrase));
+    
+    if (freshPool.length === 0) {
+        freshPool = pool.filter(p => !completedPhrases.includes(p.phrase));
+    }
+
+    if (freshPool.length === 0 && pool.length > 0) {
+        freshPool = pool;
+        seenHistory = []; 
+    }
+    
+    if (freshPool.length === 0) {
+        freshPool = db;
+    }
+
+    let seed = 0;
+    for (let i = 0; i < logicalDate.length; i++) {
+        seed += logicalDate.charCodeAt(i);
+    }
+    
+    if (forceRefresh) seed += Math.floor(Math.random() * 1000);
+    
+    const index = Math.abs(seed) % freshPool.length;
+    const selectedPhrase = freshPool[index];
+    
+    const historyLimit = Math.floor(db.length * 0.7);
+    if (!seenHistory.includes(selectedPhrase.phrase)) {
+        seenHistory.unshift(selectedPhrase.phrase);
+    }
+    if (seenHistory.length > historyLimit) {
+        seenHistory = seenHistory.slice(0, historyLimit);
+    }
+    
+    localStorage.setItem('speakAi_phraseHistory', JSON.stringify(seenHistory));
+    localStorage.setItem('speakAi_dailyPhrase', JSON.stringify({
+        logicalDate: logicalDate,
+        phrase: selectedPhrase
+    }));
+    
+    return selectedPhrase;
+}
+
+function renderPracticalPhrases() {
+    const container = document.getElementById('phrases-of-the-day-container');
+    if (!container) return;
+    
+    const phraseObj = getPhrasesOfTheDay();
+    const isAlreadySaved = window.VocabBank && window.VocabBank.words.some(w => w.word.toLowerCase() === phraseObj.phrase.toLowerCase());
+    const starClass = isAlreadySaved ? 'fa-solid' : 'fa-regular';
+    
+    container.innerHTML = `
+        <div class="word-card" style="margin-top: 20px; border-top: 4px solid var(--secondary);">
+            <div class="word-card-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>今日片語 (Phrase of the Day)</span>
+                </div>
+                <div style="margin-left: auto; display: flex; gap: 4px;">
+                    <button id="mark-phrase-learned-btn" class="icon-btn" title="標記為已學會" style="width: 28px; height: 28px; color: var(--success);">
+                        <i class="fa-regular fa-circle-check"></i>
+                    </button>
+                    <button id="refresh-phrase-btn" class="icon-btn" title="換一個片語" style="width: 28px; height: 28px; color: var(--text-secondary);">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="word-card-body">
+                <h3 class="word-title">
+                    ${phraseObj.phrase}
+                    <button id="pronounce-phrase-title-btn" class="icon-btn" aria-label="發音" style="width: 32px; height: 32px; margin-left: auto; color: var(--secondary); background: rgba(168, 85, 247, 0.1);">
+                        <i class="fa-solid fa-volume-high" style="font-size: 0.9rem;"></i>
+                    </button>
+                    <button id="save-daily-phrase-btn" class="icon-btn" aria-label="收藏片語" title="加入單字庫" style="width: 32px; height: 32px; margin-left: 8px; color: var(--warning); background: rgba(245, 158, 11, 0.1);">
+                        <i class="${starClass} fa-star" style="font-size: 0.9rem;"></i>
+                    </button>
+                </h3>
+                <p class="word-translation">${phraseObj.translation}</p>
+                <p style="margin: 0 0 16px 0; color: var(--text-secondary); font-size: 0.9rem; font-style: italic;">${phraseObj.meaning}</p>
+                
+                <div class="word-examples-container">
+                    ${phraseObj.examples.map((ex, idx) => `
+                        <div class="word-example-item" style="margin-bottom: 12px; border-bottom: 1px dashed rgba(0,0,0,0.05); padding-bottom: 8px;">
+                            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                <button class="icon-btn pronounce-phrase-ex-btn" data-text="${ex.replace(/"/g, '&quot;')}" title="朗讀整句" style="flex-shrink: 0; width: 28px; height: 28px; color: var(--secondary); background: rgba(168, 85, 247, 0.1);">
+                                    <i class="fa-solid fa-volume-high" style="font-size: 0.8rem;"></i>
+                                </button>
+                                <div class="example-text-content">
+                                    <p style="margin: 0; line-height: 1.5; color: var(--text-primary); font-size: 0.95rem;">"${ex}"</p>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Titile Pronounce
+    const titlePronounceBtn = document.getElementById('pronounce-phrase-title-btn');
+    if (titlePronounceBtn) {
+        titlePronounceBtn.addEventListener('click', () => speakText(phraseObj.phrase));
+    }
+    
+    // Example Pronounce
+    container.querySelectorAll('.pronounce-phrase-ex-btn').forEach(btn => {
+        btn.addEventListener('click', () => speakText(btn.getAttribute('data-text')));
+    });
+    
+    // Save to Vocab Bank
+    const saveBtn = document.getElementById('save-daily-phrase-btn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            if (window.VocabBank) {
+                const icon = saveBtn.querySelector('i');
+                const isSaved = icon.classList.contains('fa-solid');
+                if (isSaved) {
+                    window.VocabBank.removeWord(phraseObj.phrase);
+                    icon.className = 'fa-regular fa-star';
+                } else {
+                    // Pass a type so we can distinguish phrases in logic if needed
+                    window.VocabBank.saveWord(phraseObj.phrase, phraseObj.translation);
+                    icon.className = 'fa-solid fa-star';
+                }
+            }
+        });
+    }
+    
+    // Mark as Learned
+    const markBtn = document.getElementById('mark-phrase-learned-btn');
+    if (markBtn) {
+        markBtn.addEventListener('click', () => {
+            if (!phraseObj) return;
+            if (!completedPhrases.includes(phraseObj.phrase)) {
+                completedPhrases.push(phraseObj.phrase);
+                localStorage.setItem('speakAi_completedPhrases', JSON.stringify(completedPhrases));
+            }
+            const icon = markBtn.querySelector('i');
+            icon.className = 'fa-solid fa-circle-check';
+            setTimeout(() => {
+                getPhrasesOfTheDay(true);
+                renderPracticalPhrases();
+            }, 600);
+        });
+    }
+
+    // Refresh
+    const refreshBtn = document.getElementById('refresh-phrase-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            const icon = refreshBtn.querySelector('i');
+            icon.classList.add('fa-spin');
+            setTimeout(() => {
+                getPhrasesOfTheDay(true);
+                renderPracticalPhrases();
+                icon.classList.remove('fa-spin');
+            }, 500);
+        });
+    }
+}
+
+function speakText(text) {
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
     }
 }
