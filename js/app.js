@@ -1,6 +1,15 @@
 // Application UI Logic
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Register Service Worker for PWA (Offline Support)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('[App] Service Worker Registered! Scope:', reg.scope))
+                .catch(err => console.log('[App] Service Worker Registration Failed:', err));
+        });
+    }
+
     initNavigation();
     initTextareaAutoResize();
     initSettings();
