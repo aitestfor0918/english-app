@@ -490,7 +490,11 @@ function renderWordOfTheDay() {
                         <i class="${starClass} fa-star" style="font-size: 0.9rem;"></i>
                     </button>
                 </h3>
-                <p class="word-translation">${wordObj.translation}</p>
+                <p class="word-translation">
+                    ${wordObj.translation} 
+                    ${wordObj.pos ? `<span class="word-pos-label">(${wordObj.pos})</span>` : ''}
+                </p>
+
                 <div class="word-examples-container">
                     ${examplesToShow.map((ex, idx) => `
                         <div class="word-example-item" style="margin-bottom: 16px; border-bottom: 1px dashed rgba(0,0,0,0.05); padding-bottom: 12px;">
