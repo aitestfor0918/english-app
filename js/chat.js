@@ -487,7 +487,11 @@ async function callGeminiAPI(userText, apiKey) {
             let errorText = "";
             try {
                 const errorData = await response.json();
-                errorText = errorData.error || response.statusText;
+                if (errorData.error && typeof errorData.error === 'object') {
+                    errorText = errorData.error.message || JSON.stringify(errorData.error);
+                } else {
+                    errorText = errorData.error || errorData.message || response.statusText;
+                }
             } catch (e) {
                 errorText = `伺服器回傳錯誤 (${response.status})。可能是 Vercel 設定問題，請檢查 Deployment Logs。`;
             }
