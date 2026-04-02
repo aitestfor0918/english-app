@@ -1,0 +1,12 @@
+{
+  "name": "speakai-english-practice",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": "20.x"
+  },
+  "scripts": {
+    "start": "serve ."
+  }
+}
