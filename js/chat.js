@@ -245,7 +245,13 @@ function speakAiText(text) {
     
     const speed = parseFloat(localStorage.getItem('speech_speed') || '0.85');
     utterance.rate = speed; 
-    window.speechSynthesis.speak(utterance);
+    
+    // Safety check for mobile browsers (iOS Safari often fails if not handled well)
+    try {
+        window.speechSynthesis.speak(utterance);
+    } catch (e) {
+        console.error("Speech Synthesis failed:", e);
+    }
 }
 
 function initSpeechRecognition() {
@@ -476,6 +482,16 @@ async function callGeminiAPI(userText, apiKey) {
                     contents: conversationHistory
                 })
             });
+        }
+        if (!response.ok) {
+            let errorText = "";
+            try {
+                const errorData = await response.json();
+                errorText = errorData.error || response.statusText;
+            } catch (e) {
+                errorText = `伺服器回傳錯誤 (${response.status})。可能是 Vercel 設定問題，請檢查 Deployment Logs。`;
+            }
+            throw new Error(errorText);
         }
 
         const data = await response.json();
