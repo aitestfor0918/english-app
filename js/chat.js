@@ -82,11 +82,15 @@ function resetChat(scenario, isInitialLoad = false) {
         // Intermediate
         levelInstruction = "The user is at an INTERMEDIATE level (Equivalent to Taiwan Senior High school, 高中程度). Use vocabulary and grammar typical of a high school graduate (around 4,000-7,000 words). Use standard natural English with varied sentence lengths. Include common idioms to help them progress.";
     }
+
+    // Long-term memory context
+    let userProfileMemory = localStorage.getItem('speakAi_userProfile') || "No previous information known about the user yet.";
+    let memoryInstruction = `\n\n[LONG-TERM MEMORY ABOUT THE USER]:\n${userProfileMemory}\n\nUse this information to make the conversation feel personal and continuous. If the user tells you new permanent facts about themselves (name, job, hobbies, family, preferences, goals), you should output a concise update to this memory.`;
     
     conversationHistory = [
         {
             role: "user",
-            parts: [{text: `We are doing an English speaking practice roleplay. My name is ${nickname}. My English level is ${level}. ${levelInstruction} The scenario is: ${scenario.title}. ${scenario.desc}. ${wordContext}You will act as the person I am talking to in this scenario, but you are also my English coach. Always reply in English. Every time I reply, you should continue the conversation naturally. Keep your conversational response brief and concise (typically 1-2 sentences). Adjust your vocabulary and sentence complexity to match my level strictly. If my English has grammatical errors, vocabulary mistakes, or unnatural phrasing, you must provide a correction. You MUST ONLY respond in valid JSON format with this exact structure (do not use markdown blocks for JSON, just pure JSON):\n{\n  "reply": "Your concise conversational response here",\n  "correction": {\n     "wrong": "The exact mistake I made (or null if perfect)",\n     "correct": "The corrected sentence (or null)",\n     "explanation": "Brief explanation in Traditional Chinese (or null)"\n  }\n}`}]
+            parts: [{text: `We are doing an English speaking practice roleplay. My name is ${nickname}. My English level is ${level}. ${levelInstruction}${memoryInstruction} The scenario is: ${scenario.title}. ${scenario.desc}. ${wordContext}You will act as the person I am talking to in this scenario, but you are also my English coach. Always reply in English. Every time I reply, you should continue the conversation naturally. Keep your conversational response brief and concise (typically 1-2 sentences). Adjust your vocabulary and sentence complexity to match my level strictly. If my English has grammatical errors, vocabulary mistakes, or unnatural phrasing, you must provide a correction. You MUST ONLY respond in valid JSON format with this exact structure (do not use markdown blocks for JSON, just pure JSON):\n{\n  "reply": "Your concise conversational response here",\n  "correction": {\n     "wrong": "The exact mistake I made (or null if perfect)",\n     "correct": "The corrected sentence (or null)",\n     "explanation": "Brief explanation in Traditional Chinese (or null)"\n  },\n  "memory_update": "A concise string of NEW facts learned about the user in this turn, or null if nothing new." \n}`}]
         },
         {
             role: "model",
@@ -522,6 +526,11 @@ async function callGeminiAPI(userText, apiKey) {
 
         appendAiMessage(aiJson.reply, aiJson.correction);
 
+        // Update Long-Term Memory if provided
+        if (aiJson.memory_update && typeof aiJson.memory_update === 'string') {
+            updateUserProfile(aiJson.memory_update);
+        }
+
     } catch (error) {
         removeTypingIndicator();
         console.error('API Error:', error);
@@ -787,4 +796,26 @@ function wrapWordsWithHover(text) {
     });
     
     return tempDiv.innerHTML;
+}
+
+function updateUserProfile(newFacts) {
+    if (!newFacts || newFacts.toLowerCase() === 'null') return;
+    
+    let currentProfile = localStorage.getItem('speakAi_userProfile') || "";
+    
+    // Simple deduplication and merging
+    // We append the new facts to the current profile
+    // In a more advanced version, we could use another AI call to consolidate the profile
+    const timestamp = new Date().toLocaleDateString();
+    const updatedLine = `[Learned on ${timestamp}]: ${newFacts}`;
+    
+    let profileLines = currentProfile ? currentProfile.split('\n') : [];
+    profileLines.push(updatedLine);
+    
+    // Keep only the most recent 15 facts to prevent context bloat
+    if (profileLines.length > 15) {
+        profileLines = profileLines.slice(-15);
+    }
+    
+    localStorage.setItem('speakAi_userProfile', profileLines.join('\n'));
 }
