@@ -555,8 +555,8 @@ async function callGeminiAPI(userText, apiKey) {
         removeTypingIndicator();
         console.error('API Error:', error);
         
-        let errorMsg = error.message || "Unknown error";
-        let displayMsg = errorMsg;
+        let errorMsg = error.message || error;
+        let displayMsg = (typeof errorMsg === 'string') ? errorMsg : JSON.stringify(errorMsg);
 
         if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
             displayMsg = `網路連線問題，請檢查網路狀態。如果您在本地執行，請確認「設定」中已填寫 API Key。\n\n詳細錯誤: ${errorMsg}`;

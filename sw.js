@@ -1,4 +1,4 @@
-const CACHE_NAME = 'speakai-v2'; // Changed version to force refresh
+const CACHE_NAME = 'speakai-v3'; // Incremented to clear old JS caches
 const ASSETS = [
   './',
   './index.html',
