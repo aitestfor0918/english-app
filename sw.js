@@ -1,4 +1,4 @@
-const CACHE_NAME = 'speakai-v4'; // Incremented for API retry logic update
+const CACHE_NAME = 'speakai-v5'; // Incremented to v5: Bypass API calls in SW
 const ASSETS = [
   './',
   './index.html',
@@ -41,6 +41,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch Event: Cache-First Strategy for static assets
 self.addEventListener('fetch', (event) => {
+  // CRITICAL: Skip Service Worker interception for API calls (pass through to network)
+  if (event.request.url.includes('/api/')) {
+    return; // Pass through to original browser network layer
+  }
+
   // Skip cross-origin requests (Google Fonts, Font Awesome) from the main cache
   // But we can still serve them if they're in the cache
   if (!event.request.url.startsWith(self.location.origin)) {
