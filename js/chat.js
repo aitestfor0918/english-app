@@ -438,15 +438,30 @@ async function callGeminiAPI(userText, apiKey) {
         promptAddition = " (Note: The user's message is in Chinese. Please start your response by providing a natural English translation of their message, then continue the conversation in English as their coach.)";
     }
 
-    // Add user message to history
     conversationHistory.push({
         role: "user",
         parts: [{text: userText + promptAddition}]
     });
 
+    // --- History Management: Keep system context + last 12 messages ---
+    if (conversationHistory.length > 14) {
+        // Index 0 & 1 are the initial instructions and greeting confirm
+        const systemSetup = conversationHistory.slice(0, 2);
+        // Take the last 12 messages
+        const recentHistory = conversationHistory.slice(-12);
+        conversationHistory = [...systemSetup, ...recentHistory];
+        console.log(`[Chat] History truncated to ${conversationHistory.length} messages.`);
+    }
+
     const maxRetries = 3;
     let retryCount = 0;
     const retryDelay = (ms) => new Promise(res => setTimeout(res, ms));
+
+    if (!navigator.onLine) {
+        removeTypingIndicator();
+        appendAiMessage(`⚠️ 系統提示：網路連線似乎已中斷，請檢查 Wi-Fi 或數據連線。`);
+        return;
+    }
 
     while (retryCount < maxRetries) {
         try {
@@ -495,8 +510,16 @@ async function callGeminiAPI(userText, apiKey) {
                 if (retryableStatuses.includes(response.status)) {
                     retryCount++;
                     if (retryCount < maxRetries) {
-                        console.log(`[API] Status ${response.status}, Retrying request (${retryCount}/${maxRetries})...`);
-                        await retryDelay(2000 * retryCount); // Exponential backoff: 2s, 4s, etc.
+                        const nextRetryDelay = 2000 * retryCount;
+                        console.log(`[API] Status ${response.status}, Retrying request (${retryCount}/${maxRetries}) in ${nextRetryDelay}ms...`);
+                        
+                        // Update typing indicator to let user know we are retrying
+                        const typingText = document.querySelector('#typing-indicator .typing-indicator');
+                        if (typingText) {
+                            typingText.innerHTML = `<span>連線較慢，重試中 (${retryCount}/${maxRetries})...</span>`;
+                        }
+                        
+                        await retryDelay(nextRetryDelay); // Exponential backoff: 2s, 4s, etc.
                         continue; // Go to next loop iteration
                     }
                 }

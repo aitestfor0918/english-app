@@ -1,4 +1,4 @@
-const CACHE_NAME = 'speakai-v6'; // Incremented for retry logic expansion and timeout fix
+const CACHE_NAME = 'speakai-v7'; // Incremented to v7 for timeout and history optimization release
 const ASSETS = [
   './',
   './index.html',
