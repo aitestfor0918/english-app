@@ -490,11 +490,12 @@ async function callGeminiAPI(userText, apiKey) {
             }
 
             if (!response.ok) {
-                // If it's a 429 or 503 error, we should retry
-                if (response.status === 429 || response.status === 503) {
+                // Retry for common transient errors: 429 (Rate Limit), 503 (High Demand), 504 (Timeout), 500 (Internal)
+                const retryableStatuses = [429, 503, 500, 504];
+                if (retryableStatuses.includes(response.status)) {
                     retryCount++;
                     if (retryCount < maxRetries) {
-                        console.log(`[API] Retrying request (${retryCount}/${maxRetries}) after ${response.status} error...`);
+                        console.log(`[API] Status ${response.status}, Retrying request (${retryCount}/${maxRetries})...`);
                         await retryDelay(2000 * retryCount); // Exponential backoff: 2s, 4s, etc.
                         continue; // Go to next loop iteration
                     }

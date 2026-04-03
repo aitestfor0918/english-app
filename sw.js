@@ -1,4 +1,4 @@
-const CACHE_NAME = 'speakai-v5'; // Incremented to v5: Bypass API calls in SW
+const CACHE_NAME = 'speakai-v6'; // Incremented for retry logic expansion and timeout fix
 const ASSETS = [
   './',
   './index.html',
