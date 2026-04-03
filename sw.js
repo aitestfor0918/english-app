@@ -1,4 +1,4 @@
-const CACHE_NAME = 'speakai-v3'; // Incremented to clear old JS caches
+const CACHE_NAME = 'speakai-v4'; // Incremented for API retry logic update
 const ASSETS = [
   './',
   './index.html',

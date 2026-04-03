@@ -444,134 +444,161 @@ async function callGeminiAPI(userText, apiKey) {
         parts: [{text: userText + promptAddition}]
     });
 
-    try {
-        let response;
-        const host = window.location.hostname;
-        const isLocal = host === 'localhost' || 
-                        host === '127.0.0.1' || 
-                        host.startsWith('192.168.') || 
-                        host.startsWith('10.') || 
-                        host.endsWith('.local') ||
-                        window.location.protocol === 'file:';
+    const maxRetries = 3;
+    let retryCount = 0;
+    const retryDelay = (ms) => new Promise(res => setTimeout(res, ms));
 
-        // Use the exact model name from the user's supported list: gemini-flash-latest
-        const modelName = "gemini-flash-latest";
-
-        if (isLocal && apiKey) {
-            // Local fallback: Direct call
-            const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-            response = await fetch(directUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contents: conversationHistory
-                })
-            });
-        } else {
-            // Production or No-Key local: Vercel Proxy
-            const proxyUrl = `/api/chat`;
-            response = await fetch(proxyUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey || ''
-                },
-                body: JSON.stringify({
-                    contents: conversationHistory
-                })
-            });
-        }
-        if (!response.ok) {
-            let errorText = "";
-            try {
-                const errorData = await response.json();
-                if (errorData.error && typeof errorData.error === 'object') {
-                    errorText = errorData.error.message || JSON.stringify(errorData.error);
-                } else {
-                    errorText = errorData.error || errorData.message || response.statusText;
-                }
-            } catch (e) {
-                errorText = `伺服器回傳錯誤 (${response.status})。可能是 Vercel 設定問題，請檢查 Deployment Logs。`;
-            }
-            throw new Error(errorText);
-        }
-
-        const data = await response.json();
-        removeTypingIndicator();
-
-        if (data.error) {
-            throw new Error(data.error.message || JSON.stringify(data.error));
-        }
-        
-        const candidate = data.candidates && data.candidates[0];
-        if (!candidate) {
-            throw new Error("收到空白的回覆。");
-        }
-        
-        if (candidate.finishReason === 'SAFETY' || candidate.finishReason === 'RECITATION') {
-            throw new Error("對話內容觸發了 AI 安全過濾機制 (Safety Filter)。");
-        }
-
-        if (!candidate.content || !candidate.content.parts || !candidate.content.parts[0]) {
-            throw new Error("AI 回覆的格式異常。");
-        }
-
-        const aiText = candidate.content.parts[0].text || "";
-        
-        if (!aiText) {
-            throw new Error("AI 回覆的內容為空。");
-        }
-
-        // Always add model's raw text to history FIRST to maintain 'user' -> 'model' alternating requirement
-        conversationHistory.push({
-            role: "model",
-            parts: [{text: aiText}]
-        });
-
-        let aiJson;
+    while (retryCount < maxRetries) {
         try {
-            // Strip markdown code blocks just in case Gemini wrapped the JSON
-            // Added safety check to ensure aiText is a string
-            const cleanedText = typeof aiText === 'string' 
-                ? aiText.replace(/```json/gi, '').replace(/```/g, '').trim() 
-                : "";
-            aiJson = JSON.parse(cleanedText);
-        } catch (e) {
-            console.error('Failed to parse AI JSON:', aiText);
-            appendAiMessage("抱歉，我剛才有點沒聽清楚您的意思，可以換個方式再說一次嗎？");
-            return;
-        }
+            let response;
+            const host = window.location.hostname;
+            const isLocal = host === 'localhost' || 
+                            host === '127.0.0.1' || 
+                            host.startsWith('192.168.') || 
+                            host.startsWith('10.') || 
+                            host.endsWith('.local') ||
+                            window.location.protocol === 'file:';
 
-        appendAiMessage(aiJson.reply, aiJson.correction);
+            // Use the exact model name from the user's supported list: gemini-flash-latest
+            const modelName = "gemini-flash-latest";
 
-        // Update Long-Term Memory if provided
-        if (aiJson.memory_update && typeof aiJson.memory_update === 'string') {
-            updateUserProfile(aiJson.memory_update);
-        }
+            if (isLocal && apiKey) {
+                // Local fallback: Direct call
+                const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                response = await fetch(directUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: conversationHistory
+                    })
+                });
+            } else {
+                // Production or No-Key local: Vercel Proxy
+                const proxyUrl = `/api/chat`;
+                response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey || ''
+                    },
+                    body: JSON.stringify({
+                        contents: conversationHistory
+                    })
+                });
+            }
 
-    } catch (error) {
-        removeTypingIndicator();
-        console.error('API Error:', error);
-        
-        let errorMsg = error.message || error;
-        let displayMsg = (typeof errorMsg === 'string') ? errorMsg : JSON.stringify(errorMsg);
+            if (!response.ok) {
+                // If it's a 429 or 503 error, we should retry
+                if (response.status === 429 || response.status === 503) {
+                    retryCount++;
+                    if (retryCount < maxRetries) {
+                        console.log(`[API] Retrying request (${retryCount}/${maxRetries}) after ${response.status} error...`);
+                        await retryDelay(2000 * retryCount); // Exponential backoff: 2s, 4s, etc.
+                        continue; // Go to next loop iteration
+                    }
+                }
 
-        if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
-            displayMsg = `網路連線問題，請檢查網路狀態。如果您在本地執行，請確認「設定」中已填寫 API Key。\n\n詳細錯誤: ${errorMsg}`;
-        } else if (errorMsg.toLowerCase().includes('quota') || errorMsg.includes('exhausted') || errorMsg.includes('429')) {
-            displayMsg = `API 請求頻率過快或已達免費額度上限，請稍等 10~20 秒後再試。\n\n詳細錯誤: ${errorMsg}`;
-        } else if (errorMsg.includes('API_KEY_INVALID')) {
-            displayMsg = `API Key 似乎無效，請至右上方設定重新確認。\n\n詳細錯誤: ${errorMsg}`;
-        }
+                let errorText = "";
+                try {
+                    const errorData = await response.json();
+                    if (errorData.error && typeof errorData.error === 'object') {
+                        errorText = errorData.error.message || JSON.stringify(errorData.error);
+                    } else {
+                        errorText = errorData.error || errorData.message || response.statusText;
+                    }
+                } catch (e) {
+                    errorText = `伺服器回傳錯誤 (${response.status})。可能是 Vercel 設定問題，請檢查 Deployment Logs。`;
+                }
+                throw new Error(errorText);
+            }
 
-        // Display the specific error in the chat
-        appendAiMessage(`⚠️ 系統提示：${displayMsg}`);
-        
-        // Remove the failed user message from history so they can retry
-        if (conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1].role === 'user') {
-            conversationHistory.pop();
+            const data = await response.json();
+            removeTypingIndicator();
+
+            if (data.error) {
+                throw new Error(data.error.message || JSON.stringify(data.error));
+            }
+            
+            const candidate = data.candidates && data.candidates[0];
+            if (!candidate) {
+                throw new Error("收到空白的回覆。");
+            }
+            
+            if (candidate.finishReason === 'SAFETY' || candidate.finishReason === 'RECITATION') {
+                throw new Error("對話內容觸發了 AI 安全過濾機制 (Safety Filter)。");
+            }
+
+            if (!candidate.content || !candidate.content.parts || !candidate.content.parts[0]) {
+                throw new Error("AI 回覆的格式異常。");
+            }
+
+            const aiText = candidate.content.parts[0].text || "";
+            
+            if (!aiText) {
+                throw new Error("AI 回覆的內容為空。");
+            }
+
+            // Always add model's raw text to history FIRST to maintain 'user' -> 'model' alternating requirement
+            conversationHistory.push({
+                role: "model",
+                parts: [{text: aiText}]
+            });
+
+            let aiJson;
+            try {
+                // Strip markdown code blocks just in case Gemini wrapped the JSON
+                const cleanedText = typeof aiText === 'string' 
+                    ? aiText.replace(/```json/gi, '').replace(/```/g, '').trim() 
+                    : "";
+                aiJson = JSON.parse(cleanedText);
+            } catch (e) {
+                console.error('Failed to parse AI JSON:', aiText);
+                appendAiMessage("抱歉，我剛才有點沒聽清楚您的意思，可以換個方式再說一次嗎？");
+                return;
+            }
+
+            appendAiMessage(aiJson.reply, aiJson.correction);
+
+            // Update Long-Term Memory if provided
+            if (aiJson.memory_update && typeof aiJson.memory_update === 'string') {
+                updateUserProfile(aiJson.memory_update);
+            }
+            
+            return; // Success - break out of the loop and function
+
+        } catch (error) {
+            // If we've exhausted all retries or it's a non-retryable error
+            if (retryCount >= maxRetries - 1 || !(error.message.includes('429') || error.message.includes('503'))) {
+                removeTypingIndicator();
+                console.error('API Error after retries:', error);
+                
+                let errorMsg = error.message || error;
+                let displayMsg = (typeof errorMsg === 'string') ? errorMsg : JSON.stringify(errorMsg);
+
+                if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
+                    displayMsg = `網路連線問題，請檢查網路狀態。如果您在本地執行，請確認「設定」中已填寫 API Key。\n\n詳細錯誤: ${errorMsg}`;
+                } else if (errorMsg.toLowerCase().includes('quota') || errorMsg.includes('exhausted') || errorMsg.includes('429')) {
+                    displayMsg = `API 請求頻率過快或已達免費額度上限，請稍等 10~20 秒後再試。\n\n詳細錯誤: ${errorMsg}`;
+                } else if (errorMsg.includes('API_KEY_INVALID')) {
+                    displayMsg = `API Key 似乎無效，請至右上方設定重新確認。\n\n詳細錯誤: ${errorMsg}`;
+                }
+
+                // Display the specific error in the chat
+                appendAiMessage(`⚠️ 系統提示：${displayMsg}`);
+                
+                // Remove the failed user message from history so they can retry
+                if (conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1].role === 'user') {
+                    conversationHistory.pop();
+                }
+                return; // End function after showing error
+            }
+            
+            // If it was a network error or fetch failed, retry
+            retryCount++;
+            console.log(`[API] Connection error, retrying (${retryCount}/${maxRetries})...`);
+            await retryDelay(2000 * retryCount);
         }
     }
 }
