@@ -467,9 +467,16 @@ async function callGeminiAPI(userText, apiKey) {
         console.log(`[Chat] History truncated to ${conversationHistory.length} messages.`);
     }
 
-    const maxRetries = 3;
+    const maxRetries = 5;
     let retryCount = 0;
     const retryDelay = (ms) => new Promise(res => setTimeout(res, ms));
+    
+    // Helper for exponential backoff with jitter
+    const getNextDelay = (count) => {
+        const base = Math.pow(2, count) * 1000; // 2s, 4s, 8s, 16s...
+        const jitter = Math.random() * 1000; // 0-1s random jitter
+        return Math.min(base + jitter, 15000); // Caps at 15s
+    };
 
     if (!navigator.onLine) {
         removeTypingIndicator();
@@ -524,16 +531,21 @@ async function callGeminiAPI(userText, apiKey) {
                 if (retryableStatuses.includes(response.status)) {
                     retryCount++;
                     if (retryCount < maxRetries) {
-                        const nextRetryDelay = 2000 * retryCount;
-                        console.log(`[API] Status ${response.status}, Retrying request (${retryCount}/${maxRetries}) in ${nextRetryDelay}ms...`);
+                        const nextRetryDelay = getNextDelay(retryCount);
+                        console.log(`[API] Status ${response.status}, Retrying request (${retryCount}/${maxRetries}) in ${Math.round(nextRetryDelay)}ms...`);
                         
                         // Update typing indicator to let user know we are retrying
                         const typingText = document.querySelector('#typing-indicator .typing-indicator');
                         if (typingText) {
-                            typingText.innerHTML = `<span>連線較慢，重試中 (${retryCount}/${maxRetries})...</span>`;
+                            let friendlyMsg = "AI 正在思考中...";
+                            if (response.status === 503) friendlyMsg = `目前 AI 較忙碌，正在進行第 ${retryCount} 次重試...`;
+                            else if (response.status === 429) friendlyMsg = `請求太快，稍等後自動重試 (${retryCount}/${maxRetries})...`;
+                            else friendlyMsg = `連線稍慢，正在重試中 (${retryCount}/${maxRetries})...`;
+                            
+                            typingText.innerHTML = `<span>${friendlyMsg}</span>`;
                         }
                         
-                        await retryDelay(nextRetryDelay); // Exponential backoff: 2s, 4s, etc.
+                        await retryDelay(nextRetryDelay); 
                         continue; // Go to next loop iteration
                     }
                 }
@@ -635,8 +647,16 @@ async function callGeminiAPI(userText, apiKey) {
             
             // If it was a network error or fetch failed, retry
             retryCount++;
-            console.log(`[API] Connection error, retrying (${retryCount}/${maxRetries})...`);
-            await retryDelay(2000 * retryCount);
+            const nextRetryDelay = getNextDelay(retryCount);
+            console.log(`[API] Connection error, retrying (${retryCount}/${maxRetries}) in ${Math.round(nextRetryDelay)}ms...`);
+            
+            // Update typing indicator
+            const typingText = document.querySelector('#typing-indicator .typing-indicator');
+            if (typingText) {
+                typingText.innerHTML = `<span>網路不穩，正在嘗試恢復連線 (${retryCount}/${maxRetries})...</span>`;
+            }
+            
+            await retryDelay(nextRetryDelay);
         }
     }
 }
