@@ -496,14 +496,14 @@ async function callGeminiAPI(userText, apiKey) {
                             host.endsWith('.local') ||
                             window.location.protocol === 'file:';
 
-            // Use the most compatible alias for AI Studio
-            const modelName = "gemini-1.5-flash-latest";
+            // Use the latest Gemini 3 Flash model
+            const modelName = "gemini-3-flash";
 
             // NEW LOGIC: If the user provides their own API Key, ALWAYS call Google directly.
             // This bypasses Vercel's 10-second timeout limit on Hobby plans.
             if (apiKey) {
-                // Direct call to Google Gemini (v1beta for best compatibility with -latest alias)
-                const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                // Direct call to Google Gemini 3 (v1 stable)
+                const directUrl = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`;
                 response = await fetch(directUrl, {
                     method: 'POST',
                     headers: {
