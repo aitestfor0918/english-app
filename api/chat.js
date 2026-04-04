@@ -20,12 +20,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Use the latest Gemini 3 Flash model
-    const modelName = "gemini-3-flash"; 
+    // Revert to the most compatible alias for AI Studio
+    const modelName = "gemini-flash-latest"; 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
