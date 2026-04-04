@@ -499,8 +499,10 @@ async function callGeminiAPI(userText, apiKey) {
             // Use canonical stable model name
             const modelName = "gemini-1.5-flash";
 
-            if (isLocal && apiKey) {
-                // Local fallback: Direct call
+            // NEW LOGIC: If the user provides their own API Key, ALWAYS call Google directly.
+            // This bypasses Vercel's 10-second timeout limit on Hobby plans.
+            if (apiKey) {
+                // Direct call to Google Gemini
                 const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
                 response = await fetch(directUrl, {
                     method: 'POST',
@@ -512,13 +514,12 @@ async function callGeminiAPI(userText, apiKey) {
                     })
                 });
             } else {
-                // Production or No-Key local: Vercel Proxy
+                // ONLY use Vercel Proxy if no user key is provided (using the shared system key)
                 const proxyUrl = `/api/chat`;
                 response = await fetch(proxyUrl, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': apiKey || ''
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         contents: conversationHistory

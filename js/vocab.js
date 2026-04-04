@@ -241,19 +241,10 @@ window.VocabBank = {
 }`;
                 
                 let response;
-                const host = window.location.hostname;
-                const isLocal = host === 'localhost' || 
-                                host === '127.0.0.1' || 
-                                host.startsWith('192.168.') || 
-                                host.startsWith('10.') || 
-                                host.endsWith('.local') ||
-                                window.location.protocol === 'file:';
-
-                // Use canonical stable model
                 const modelName = "gemini-1.5-flash";
 
-                if (isLocal && apiKey) {
-                    // Local fallback: Direct call
+                if (apiKey) {
+                    // NEW: Direct call to Google (bypasses Vercel timeouts)
                     const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
                     response = await fetch(directUrl, {
                         method: 'POST',
@@ -263,14 +254,11 @@ window.VocabBank = {
                         })
                     });
                 } else {
-                    // Production or No-Key local: Vercel Proxy
+                    // Fallback to Vercel proxy (using shared system key)
                     const proxyUrl = `/api/chat`;
                     response = await fetch(proxyUrl, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-api-key': apiKey || ''
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{ role: "user", parts: [{ text: prompt }] }]
                         })
