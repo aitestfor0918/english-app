@@ -321,8 +321,15 @@ function initSpeechRecognition() {
     
     recognition.onerror = function(event) {
         console.error("Speech recognition error", event.error);
+        isRecording = false;
+        voiceBtn.classList.remove('recording');
+        
         if(event.error === 'not-allowed') {
             alert('麥克風權限被拒絕，請在瀏覽器設定中允許使用麥克風。');
+        } else if (event.error === 'service-not-allowed') {
+            alert('語音服務不可用。請確認 iPhone 設定：一般 > 鍵盤 >「啟用聽寫」功能是否開啟，並確保沒有其他分頁在使用麥克風。');
+        } else {
+            console.warn(`Speech recognition error: ${event.error}`);
         }
     };
     
@@ -332,6 +339,13 @@ function initSpeechRecognition() {
         input.placeholder = "Type or say something in English...";
         
         // Auto-send disabled per user request to allow manual editing
+    };
+
+    // Global helper to stop recording if switching views
+    window.stopChatRecording = function() {
+        if (recognition && isRecording) {
+            recognition.stop();
+        }
     };
 }
 

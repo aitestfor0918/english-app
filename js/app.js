@@ -186,6 +186,17 @@ window.switchView = function(targetId) {
             view.classList.add('active');
         }
     });
+
+    // CRITICAL: Stop all speech activities when switching views to prevent OS-level conflicts
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+    }
+    if (typeof window.stopChatRecording === 'function') {
+        window.stopChatRecording();
+    }
+    if (typeof window.stopReadingRecordingExternal === 'function') {
+        window.stopReadingRecordingExternal();
+    }
 };
 
 function initTextareaAutoResize() {

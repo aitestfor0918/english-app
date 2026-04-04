@@ -309,7 +309,13 @@ function initReadingSpeechRecognition() {
             stopReadingRecording();
             const container = document.getElementById('reading-feedback-container');
             if (container) {
-                container.innerHTML = `<div style="text-align: center; padding: 20px;"><p style="color: var(--error);">錄音發生錯誤：${event.error}。請重試。</p></div>`;
+                let errorDesc = event.error;
+                if (event.error === 'not-allowed') {
+                    errorDesc = '麥克風權限被拒絕，請在瀏覽器設定中允許使用麥克風。';
+                } else if (event.error === 'service-not-allowed') {
+                    errorDesc = '語音服務目前不可用。請確認 iPhone 設定：一般 > 鍵盤 >「啟用聽寫」功能是否開啟，並確保沒有其他分頁（如自由對話）正在使用麥克風。';
+                }
+                container.innerHTML = `<div style="text-align: center; padding: 20px;"><p style="color: var(--error);">錄音發生錯誤：${errorDesc}。請重試。</p></div>`;
             }
         }
     };
@@ -352,6 +358,12 @@ function toggleReadingRecording() {
     } else {
         // Hide previous feedback
         document.getElementById('reading-feedback-container').classList.add('hidden');
+        
+        // CRITICAL for iOS: Stop any playing text-to-speech before starting recognition
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+
         try {
             readingRecognition.start();
         } catch(e) {
@@ -368,6 +380,14 @@ function stopReadingRecording() {
         startBtn.classList.remove('recording');
     }
 }
+
+// Global helper to stop recording if switching views
+window.stopReadingRecordingExternal = function() {
+    if (readingRecognition && isReadingRecording) {
+        readingRecognition.stop();
+        stopReadingRecording();
+    }
+};
 
 function analyzePronunciation(transcript) {
     if (!currentArticle) return;
