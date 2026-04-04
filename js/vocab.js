@@ -244,8 +244,8 @@ window.VocabBank = {
                 const modelName = "gemini-1.5-flash";
 
                 if (apiKey) {
-                    // NEW: Direct call to Google (bypasses Vercel timeouts)
-                    const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                    // NEW: Direct call to Google (v1 stable, bypasses Vercel timeouts)
+                    const directUrl = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`;
                     response = await fetch(directUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
