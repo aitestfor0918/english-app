@@ -527,8 +527,9 @@ async function callGeminiAPI(userText, apiKey) {
             }
 
             if (!response.ok) {
-                // Retry for common transient errors: 429 (Rate Limit), 503 (High Demand), 504 (Timeout), 500 (Internal)
-                const retryableStatuses = [429, 503, 500, 504];
+                // Statuses that are usually transient and worth retrying: 
+                // 429 (Rate Limit), 502 (Bad Gateway), 503 (Service Unavailable), 500 (Server Error), 504 (Gateway Timeout)
+                const retryableStatuses = [429, 502, 503, 500, 504];
                 if (retryableStatuses.includes(response.status)) {
                     retryCount++;
                     if (retryCount < maxRetries) {
@@ -620,9 +621,9 @@ async function callGeminiAPI(userText, apiKey) {
             return; // Success - break out of the loop and function
 
         } catch (error) {
-            // Fatal errors that SHOULD NOT be retried: 400 (Bad Request), 401 (Unauthorized - wrong key)
-            const errorMsg = error.message || "";
-            const isFatal = errorMsg.includes('400') || errorMsg.includes('401') || errorMsg.includes('API_KEY_INVALID');
+            // Fatal errors that SHOULD NOT be retried: 400 (Bad Request), 401 (Unauthorized), 403 (Forbidden)
+            const errorMsg = (error && error.message) ? error.message : String(error);
+            const isFatal = errorMsg.includes('400') || errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('API_KEY_INVALID');
 
             // If we've exhausted all retries or it's a fatal error, show the final failure UI
             if (retryCount >= maxRetries - 1 || isFatal) {
@@ -657,10 +658,11 @@ async function callGeminiAPI(userText, apiKey) {
             // Update typing indicator
             const typingText = document.querySelector('#typing-indicator .typing-indicator');
             if (typingText) {
-                typingText.innerHTML = `<span>網路不穩，正在嘗試恢復連線 (${retryCount}/${maxRetries})...</span>`;
+                typingText.innerHTML = `<span>連線不穩，正在嘗試恢復 (${retryCount}/${maxRetries})...</span>`;
             }
             
-            await retryDelay(nextRetryDelay);
+            // Give the OS a moment to recover network before retrying a fetch error
+            await retryDelay(nextRetryDelay + 1000); 
         }
     }
 }

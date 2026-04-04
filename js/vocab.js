@@ -278,12 +278,12 @@ window.VocabBank = {
                 }
                 
                 if (!response.ok) {
-                    // Retry for 429/503/504
-                    if ([429, 503, 504].includes(response.status)) {
+                    // Retry for common transient errors: 429, 502, 503, 504
+                    if ([429, 502, 503, 504].includes(response.status)) {
                         retryCount++;
                         if (retryCount < maxRetries) {
                             const delay = Math.pow(2, retryCount) * 2000 + Math.random() * 1000;
-                            detailsContainer.innerHTML = `<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> 目前 AI 忙碌，${Math.round(delay/1000)}秒後自動重試 (${retryCount}/${maxRetries})...</div>`;
+                            detailsContainer.innerHTML = `<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> 連線不穩，正在重新嘗試 (${retryCount}/${maxRetries})...</div>`;
                             await retryDelay(delay);
                             continue;
                         }
@@ -296,13 +296,13 @@ window.VocabBank = {
                 
                 const candidate = data.candidates && data.candidates[0];
                 if (!candidate || !candidate.content || !candidate.content.parts || !candidate.content.parts[0]) {
-                    throw new Error("AI 回覆格式異常。");
+                    throw new Error("AI 回覆內容異常。");
                 }
 
                 const aiText = candidate.content.parts[0].text || "";
                 
                 if (!aiText) {
-                    throw new Error("AI 回覆內容為空。");
+                    throw new Error("AI 回覆為空。");
                 }
 
                 // Clean markdown metadata
@@ -323,13 +323,16 @@ window.VocabBank = {
             } catch (error) {
                 console.error("AI Vocab Generation Error:", error);
                 
-                // Final error display if retries fail
-                if (retryCount >= maxRetries - 1) {
-                    detailsContainer.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--error);">產生失敗：${error.message}<br>這可能是單日額度已達上限。請稍後重試。</div>`;
+                const errorMsg = (error && error.message) ? error.message : String(error);
+                const isFatal = errorMsg.includes('400') || errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('API_KEY_INVALID');
+
+                // Final error display if retries fail or if it's fatal
+                if (retryCount >= maxRetries - 1 || isFatal) {
+                    detailsContainer.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--error);">產生失敗：${errorMsg}<br>請檢查網路或確認 API Key。</div>`;
                     return;
                 }
                 
-                // Generic error retry
+                // Generic error retry (e.g. Failed to fetch)
                 retryCount++;
                 const delay = 3000 + Math.random() * 2000;
                 await retryDelay(delay);
