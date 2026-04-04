@@ -619,12 +619,15 @@ async function callGeminiAPI(userText, apiKey) {
             return; // Success - break out of the loop and function
 
         } catch (error) {
-            // If we've exhausted all retries or it's a non-retryable error
-            if (retryCount >= maxRetries - 1 || !(error.message.includes('429') || error.message.includes('503'))) {
+            // Fatal errors that SHOULD NOT be retried: 400 (Bad Request), 401 (Unauthorized - wrong key)
+            const errorMsg = error.message || "";
+            const isFatal = errorMsg.includes('400') || errorMsg.includes('401') || errorMsg.includes('API_KEY_INVALID');
+
+            // If we've exhausted all retries or it's a fatal error, show the final failure UI
+            if (retryCount >= maxRetries - 1 || isFatal) {
                 removeTypingIndicator();
                 console.error('API Error after retries:', error);
                 
-                let errorMsg = error.message || error;
                 let displayMsg = (typeof errorMsg === 'string') ? errorMsg : JSON.stringify(errorMsg);
 
                 if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
