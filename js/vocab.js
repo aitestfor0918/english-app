@@ -221,8 +221,13 @@ window.VocabBank = {
         let apiKey = localStorage.getItem('gemini_api_key');
         const detailsContainer = document.getElementById(`vocab-details-${index}`);
         
-        try {
-            const prompt = `請以 JSON 格式提供英文單字 "${wordObj.word}" 的詳細學習資訊。
+        let retryCount = 0;
+        const maxRetries = 3;
+        const retryDelay = (ms) => new Promise(res => setTimeout(res, ms));
+
+        while (retryCount < maxRetries) {
+            try {
+                const prompt = `請以 JSON 格式提供英文單字 "${wordObj.word}" 的詳細學習資訊。
 格式規範必須嚴格遵循以下結構，不要加上任何 Markdown 註記或這句話以外的說明文字：
 {
   "forms": [
@@ -234,75 +239,101 @@ window.VocabBank = {
     { "en": "第2個英文造句 (大約10-15個字)", "zh": "造句的繁體中文翻譯" }
   ]
 }`;
-            
-            let response;
-            const host = window.location.hostname;
-            const isLocal = host === 'localhost' || 
-                            host === '127.0.0.1' || 
-                            host.startsWith('192.168.') || 
-                            host.startsWith('10.') || 
-                            host.endsWith('.local') ||
-                            window.location.protocol === 'file:';
+                
+                let response;
+                const host = window.location.hostname;
+                const isLocal = host === 'localhost' || 
+                                host === '127.0.0.1' || 
+                                host.startsWith('192.168.') || 
+                                host.startsWith('10.') || 
+                                host.endsWith('.local') ||
+                                window.location.protocol === 'file:';
 
-            // Use the more stable model name and version for free tier
-            const modelName = "gemini-flash-latest";
+                // Use canonical stable model
+                const modelName = "gemini-1.5-flash";
 
-            if (isLocal && apiKey) {
-                // Local fallback: Direct call
-                const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-                response = await fetch(directUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ role: "user", parts: [{ text: prompt }] }]
-                    })
-                });
-            } else {
-                // Production or No-Key local: Vercel Proxy
-                const proxyUrl = `/api/chat`;
-                response = await fetch(proxyUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': apiKey || ''
-                    },
-                    body: JSON.stringify({
-                        contents: [{ role: "user", parts: [{ text: prompt }] }]
-                    })
-                });
+                if (isLocal && apiKey) {
+                    // Local fallback: Direct call
+                    const directUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                    response = await fetch(directUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ role: "user", parts: [{ text: prompt }] }]
+                        })
+                    });
+                } else {
+                    // Production or No-Key local: Vercel Proxy
+                    const proxyUrl = `/api/chat`;
+                    response = await fetch(proxyUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': apiKey || ''
+                        },
+                        body: JSON.stringify({
+                            contents: [{ role: "user", parts: [{ text: prompt }] }]
+                        })
+                    });
+                }
+                
+                if (!response.ok) {
+                    // Retry for 429/503/504
+                    if ([429, 503, 504].includes(response.status)) {
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            const delay = Math.pow(2, retryCount) * 2000 + Math.random() * 1000;
+                            detailsContainer.innerHTML = `<div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> 目前 AI 忙碌，${Math.round(delay/1000)}秒後自動重試 (${retryCount}/${maxRetries})...</div>`;
+                            await retryDelay(delay);
+                            continue;
+                        }
+                    }
+                    throw new Error(`伺服器回傳狀態: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+                
+                const candidate = data.candidates && data.candidates[0];
+                if (!candidate || !candidate.content || !candidate.content.parts || !candidate.content.parts[0]) {
+                    throw new Error("AI 回覆格式異常。");
+                }
+
+                const aiText = candidate.content.parts[0].text || "";
+                
+                if (!aiText) {
+                    throw new Error("AI 回覆內容為空。");
+                }
+
+                // Clean markdown metadata
+                const cleanedText = typeof aiText === 'string' 
+                    ? aiText.replace(/```json/gi, '').replace(/```/g, '').trim() 
+                    : "";
+                const richData = JSON.parse(cleanedText);
+                
+                // Update storage
+                wordObj.richData = richData;
+                this.saveWords();
+                
+                // Render
+                detailsContainer.innerHTML = this.buildRichDataHTML(richData, index);
+                this.setupRichDataPlayButtons(card);
+                return; // SUCCESS - exit function
+
+            } catch (error) {
+                console.error("AI Vocab Generation Error:", error);
+                
+                // Final error display if retries fail
+                if (retryCount >= maxRetries - 1) {
+                    detailsContainer.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--error);">產生失敗：${error.message}<br>這可能是單日額度已達上限。請稍後重試。</div>`;
+                    return;
+                }
+                
+                // Generic error retry
+                retryCount++;
+                const delay = 3000 + Math.random() * 2000;
+                await retryDelay(delay);
             }
-            
-            const data = await response.json();
-            if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-            
-            const candidate = data.candidates && data.candidates[0];
-            if (!candidate || !candidate.content || !candidate.content.parts || !candidate.content.parts[0]) {
-                throw new Error("AI 回覆格式異常。");
-            }
-
-            const aiText = candidate.content.parts[0].text || "";
-            
-            if (!aiText) {
-                throw new Error("AI 回覆內容為空。");
-            }
-
-            // Clean markdown metadata
-            const cleanedText = typeof aiText === 'string' 
-                ? aiText.replace(/```json/gi, '').replace(/```/g, '').trim() 
-                : "";
-            const richData = JSON.parse(cleanedText);
-            
-            // Update storage
-            wordObj.richData = richData;
-            this.saveWords();
-            
-            // Render
-            detailsContainer.innerHTML = this.buildRichDataHTML(richData, index);
-            this.setupRichDataPlayButtons(card);
-            
-        } catch (error) {
-            console.error("AI Vocab Generation Error:", error);
-            detailsContainer.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--error);">產生失敗：${error.message}<br>請稍後重試或重新點開。</div>`;
         }
     },
     

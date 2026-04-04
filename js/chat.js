@@ -473,9 +473,10 @@ async function callGeminiAPI(userText, apiKey) {
     
     // Helper for exponential backoff with jitter
     const getNextDelay = (count) => {
-        const base = Math.pow(2, count) * 1000; // 2s, 4s, 8s, 16s...
-        const jitter = Math.random() * 1000; // 0-1s random jitter
-        return Math.min(base + jitter, 15000); // Caps at 15s
+        // Increased base delay for free tier stability
+        const base = Math.pow(2.5, count) * 1500; // 1.5s, 3.75s, 9.3s, 23s...
+        const jitter = Math.random() * 2000; // 0-2s random jitter
+        return Math.min(base + jitter, 35000); // Caps at 35s to respect long Google limits
     };
 
     if (!navigator.onLine) {
@@ -495,8 +496,8 @@ async function callGeminiAPI(userText, apiKey) {
                             host.endsWith('.local') ||
                             window.location.protocol === 'file:';
 
-            // Use the exact model name from the user's supported list: gemini-flash-latest
-            const modelName = "gemini-flash-latest";
+            // Use canonical stable model name
+            const modelName = "gemini-1.5-flash";
 
             if (isLocal && apiKey) {
                 // Local fallback: Direct call

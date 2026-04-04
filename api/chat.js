@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
   try {
     // Forward the request to Google's Gemini API
-    const modelName = "gemini-flash-latest";
+    const modelName = "gemini-1.5-flash"; // Using canonical version for stability
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
 
