@@ -381,7 +381,8 @@ function getWordOfTheDay(forceRefresh = false) {
         if (parsed.logicalDate === logicalDate) {
             // Find the word in the current DB to ensure it exists
             const found = db.find(w => w.word === parsed.word.word);
-            if (found) return found;
+            // Check if it's already completed; if so, trigger a new selection
+            if (found && !completedWords.includes(found.word)) return found;
         }
     }
     
@@ -633,7 +634,8 @@ function getPhrasesOfTheDay(forceRefresh = false) {
         const parsed = JSON.parse(stored);
         if (parsed.logicalDate === logicalDate) {
             const found = db.find(p => p.phrase === parsed.phrase.phrase);
-            if (found) return found;
+            // Check if it's already completed; if so, trigger a new selection
+            if (found && !completedPhrases.includes(found.phrase)) return found;
         }
     }
     
